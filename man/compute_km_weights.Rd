@@ -55,3 +55,24 @@ the final NCC.}
 Compute Kaplan-Meier type weights for (matched) NCC, possibly with dropped
 controls
 }
+\examples{
+# Load cohort data
+data(cohort_1)
+head(cohort_1)
+# Load an NCC sampled drawn from cohort_1 using the following code
+# ncc_1 <- Epi::ccwc(exit = t, fail = y, controls = 1, 
+#                    include = list(age, gender), data = cohort_1)
+data(ncc_1)
+head(ncc_1)
+# Map the NCC sample to the original cohort, break the matching, identify the 
+# subjects selected into the NCC, and return this subset with KM type weights 
+# computed for them.
+# First create the sampling and status indicator:
+sample_stat <- numeric(nrow(cohort_1))
+sample_stat[unique(ncc_1$Map[ncc_1$Fail == 0])] <- 1
+sample_stat[ncc_1$Map[ncc_1$Fail == 1]] <- 2
+# Then find the sampled subset and compute weights:
+ncc_nodup <- compute_km_weights(cohort = cohort_1, t_name = "t", y_name = "y",
+                                sample_stat = sample_stat, n_per_case = 1)
+head(ncc_nodup)
+}

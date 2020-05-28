@@ -1,9 +1,10 @@
 Package: SamplingDesignTools
 Type: Package
 Title: Tools for Dealing with Sampling Designs
-Version: 0.1.0
+Version: 0.1.1
 Author: Ning Yilin
 Maintainer: Ning Yilin <ningyilinnyl@gmail.com>
+Depends: R (>= 3.5.0)
 Imports: dplyr, survival
 Description: Provides functions for modified nested case-control (NCC) designs, e.g., counter-matched NCC, or partial reuse of NCC.
 License: LGPL-3

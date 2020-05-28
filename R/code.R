@@ -19,6 +19,15 @@
 #'   variable (including the case). Default is 1.
 #' @return Returns a \code{data.frame} of the counter-matched NCC sample.
 #' @export
+#' @examples 
+#' data(cohort_1)
+#' head(cohort_1)
+#' # Counter-match on binary indicator for age:
+#' cohort_1$age_bin <- as.numeric(cohort_1$age < 50)
+#' ncc_cm_bin <- draw_ncc_cm(cohort = cohort_1, y_name = "y", t_name = "t", 
+#'                           match_var_name = "age_bin", 
+#'                           include_var_name = c("age", "gender"), ml = 1)
+#' head(ncc_cm_bin, 10)
 draw_ncc_cm <- function(cohort, y_name = NULL, t_name = NULL,
                         match_var_name = NULL, include_var_name = NULL, ml = 1) {
   cohort <- as.data.frame(cohort)
@@ -111,6 +120,26 @@ draw_ncc_cm <- function(cohort, y_name = NULL, t_name = NULL,
 #' @import survival
 #' @import dplyr
 #' @export
+#' @examples 
+#' # Load cohort data
+#' data(cohort_1)
+#' head(cohort_1)
+#' # Load an NCC sampled drawn from cohort_1 using the following code
+#' # ncc_1 <- Epi::ccwc(exit = t, fail = y, controls = 1, 
+#' #                    include = list(age, gender), data = cohort_1)
+#' data(ncc_1)
+#' head(ncc_1)
+#' # Map the NCC sample to the original cohort, break the matching, identify the 
+#' # subjects selected into the NCC, and return this subset with KM type weights 
+#' # computed for them.
+#' # First create the sampling and status indicator:
+#' sample_stat <- numeric(nrow(cohort_1))
+#' sample_stat[unique(ncc_1$Map[ncc_1$Fail == 0])] <- 1
+#' sample_stat[ncc_1$Map[ncc_1$Fail == 1]] <- 2
+#' # Then find the sampled subset and compute weights:
+#' ncc_nodup <- compute_km_weights(cohort = cohort_1, t_name = "t", y_name = "y",
+#'                                 sample_stat = sample_stat, n_per_case = 1)
+#' head(ncc_nodup)
 compute_km_weights <- function(cohort, t_name = NULL, y_name = NULL,
                                sample_stat, keep_stat = NULL, 
                                match_var_names = NULL,
@@ -140,17 +169,6 @@ compute_km_weights <- function(cohort, t_name = NULL, y_name = NULL,
       stop(simpleError("Make sure all match variables are in cohort."))
     }
   }
-  if (is.null(match_var_names)) {
-    match_var <- rep(1, nrow(cohort))
-  } else {
-    mat <- cohort[, match_var_names]
-    if (length(match_var_names) == 1) {
-      mat <- matrix(mat, ncol = length(match_var_names))
-    }
-    match_var <- apply(mat, 1, function(row) paste(row, collapse = "-"))
-    # Make sure the levels are integers starting from 1
-    match_var <- factor(as.numeric(factor(match_var)))
-  }
   if (is.null(n_kept)) {
     keep_stat <- NULL
   }
@@ -164,12 +182,29 @@ compute_km_weights <- function(cohort, t_name = NULL, y_name = NULL,
   }
   t <- cohort[, t_name]
   y <- as.numeric(sample_stat >= 2)
-  km <- survfit(Surv(t, y) ~ match_var)
-  km_summ <- summary(km)
-  km_tb <- data.frame(t = km_summ$time, Rj = km_summ$n.risk - km_summ$n.event,
-                      strata = as.character(km_summ$strata), 
-                      stringsAsFactors = FALSE) %>%
-    arrange(strata, t)
+  if (is.null(match_var_names)) {
+    match_var <- rep(1, nrow(cohort))
+    km <- survfit(Surv(t, y) ~ 1)
+    km_summ <- summary(km)
+    km_tb <- data.frame(t = km_summ$time, Rj = km_summ$n.risk - km_summ$n.event,
+                        strata = "match_var=1", 
+                        stringsAsFactors = FALSE) %>%
+      arrange(strata, t)
+  } else {
+    mat <- cohort[, match_var_names]
+    if (length(match_var_names) == 1) {
+      mat <- matrix(mat, ncol = length(match_var_names))
+    }
+    match_var <- apply(mat, 1, function(row) paste(row, collapse = "-"))
+    # Make sure the levels are integers starting from 1
+    match_var <- factor(as.numeric(factor(match_var)))
+    km <- survfit(Surv(t, y) ~ match_var)
+    km_summ <- summary(km)
+    km_tb <- data.frame(t = km_summ$time, Rj = km_summ$n.risk - km_summ$n.event,
+                        strata = as.character(km_summ$strata), 
+                        stringsAsFactors = FALSE) %>%
+      arrange(strata, t)
+  }
   if (is.null(n_kept)) { # All are kept
     km_tb <- km_tb %>%
       group_by(strata) %>% 
@@ -207,3 +242,65 @@ compute_km_weights <- function(cohort, t_name = NULL, y_name = NULL,
   }))
   cbind(ncc_nodup, km_prob = p_ncc, km_weight = 1 / p_ncc)
 }
+
+#' Simulated cohort 1
+#'
+#' @format A data frame with 10000 rows and 5 variables:
+#' \describe{
+#'   \item{id}{Subject ID of each subject.}
+#'   \item{y}{Event/censoring indicator. Events are indicated by y=1.}
+#'   \item{t}{Event/censoring time (in years). Maximum follow-up time is 25 years.}
+#'   \item{age}{Age of subjects (rounded to integers).}
+#'   \item{gender}{Gender of subjects (1 for male and 0 for female).}
+#' }
+"cohort_1"
+
+#' Nested case-control (NCC) data 1
+#' 
+#' @description Time-matched data drawn from \code{\link{cohort_1}}, with one  
+#' controls matched to each case.
+#' 
+#' @format A data frame with 1164 rows and 6 variables:
+#' \describe{
+#'   \item{Set}{Set ID.}
+#'   \item{Map}{Row numbers in \code{cohort_1}.}
+#'   \item{Time}{Event time (in years) of the case in each \code{Set}.}
+#'   \item{Fail}{Case-control indicator.}
+#'   \item{age}{Age of subjects (rounded to integers).}
+#'   \item{gender}{Gender of subjects (1 for male and 0 for female).}
+#' }
+"ncc_1"
+
+#' Simulated cohort 2
+#'
+#' @format A data frame with 100000 rows and 8 variables:
+#' \describe{
+#'   \item{id}{Subject ID of each subject.}
+#'   \item{y}{Event/censoring indicator. Events are indicated by y=1.}
+#'   \item{t}{Event/censoring time (in years). Maximum follow-up time is 25 years.}
+#'   \item{x}{Binary exposure.}
+#'   \item{age}{Age of subjects (rounded to integers and mean-centred).}
+#'   \item{age_cat}{Age category of subjects.}
+#'   \item{gender}{Gender of subjects (1 for male and 0 for female).}
+#'   \item{z}{Binary effect modifier.}
+#' }
+"cohort_2"
+
+#' Nested case-control (NCC) data 2
+#' 
+#' @description NCC data drawn from \code{\link{cohort_2}} matched on , with one  
+#' controls matched to each case.
+#' 
+#' @format A data frame with 16638 rows and 9 variables:
+#' \describe{
+#'   \item{Set}{Set ID.}
+#'   \item{Map}{Row numbers in \code{cohort_2}.}
+#'   \item{Time}{Event time (in years) of the case in each \code{Set}.}
+#'   \item{Fail}{Case-control indicator.}
+#'   \item{age_cat}{Age category of subjects.}
+#'   \item{gender}{Gender of subjects (1 for male and 0 for female).}
+#'   \item{x}{Binary exposure.}
+#'   \item{age}{Age of subjects (rounded to integers).}
+#'   \item{z}{Binary effect modifier.}
+#' }
+"ncc_2"
