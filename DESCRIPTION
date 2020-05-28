@@ -1,7 +1,7 @@
 Package: SamplingDesignTools
 Type: Package
 Title: Tools for Dealing with Sampling Designs
-Version: 0.1.0
+Version: 0.1.1
 Author: Ning Yilin
 Maintainer: Ning Yilin <ningyilinnyl@gmail.com>
 Imports: dplyr, survival
