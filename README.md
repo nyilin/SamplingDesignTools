@@ -1,7 +1,13 @@
 # 0 Preparation
 
-Install the SamplingDesignTools package from GitHub and load additional
-packages used.
+Install the SamplingDesignTools package from GitHub (package devtools
+needed):
+
+``` r
+# devtools::install_github("nyilin/SamplingDesignTools")
+```
+
+Load packages used:
 
 ``` r
 library(SamplingDesignTools)
@@ -34,18 +40,19 @@ m_cox_cohort_1 <- coxph(Surv(t, y) ~ age + gender, data = cohort_1)
 ```
 
 In this example, I am using a simulated cohort with 10,000 subjects,
-where a continuous exposure (\(x \sim N(55, 10^2)\)) represents their
-age and a binary covariate indicates their gender (\(c = 1\) for male,
-\(Pr(c=1)=0.5\)).
+where a continuous exposure (x ~ N(55, 10^2)) represents their age and a
+binary covariate indicates their gender (c = 1 for male, Pr(c=1)=0.5).
 
-The event time \(t\) was generated from a Weibull distribution with
-hazard function:
-\[\log{h(t; x, c)} = \log{h_0} + \log(1.1) \cdot x + \log(2) \cdot c,\]
-where the baseline hazard \(h_0 = 10^{-5}\) and the scale parameter was
-1. All individuals entered the cohort at time \(t=0\) and were followed
-until the event of interest or a censoring time (generated from an
-exponential distribution with a rate of 0.05) with a maximum follow-up
-time of \(t=25\). There were 582 cases (5.8%) in this cohort.
+The event time t was generated from a Weibull distribution with hazard
+function:
+
+log{h(t; x, c)} = log{h\_0} + log(1.1) \* x + log(2) \* c,
+
+where the baseline hazard h\_0=10^{-5} and the scale parameter was 1.
+All individuals entered the cohort at time t=0 and were followed until
+the event of interest or a censoring time (generated from an exponential
+distribution with a rate of 0.05) with a maximum follow-up time of t=25.
+There were 582 cases (5.8%) in this cohort.
 
 ## Counter-match on binary surrogate
 
@@ -181,18 +188,19 @@ m_cox_cohort_2 <- coxph(Surv(t, y) ~ x * z + age + gender, data = cohort_2)
 ```
 
 In this example, I use a simulated cohort with 100,000 subjects with
-\(age ~ N(55, 10^2)\), \(Pr(male = 1) = 0.5\), a binary exposure (\(x\))
-that depends on gender (\(Pr(x = 1) = 0.8\) for female and 0.5 for male)
-and a binary effect modifier (\(Pr(z = 1) = 0.3\)). The event time \(t\)
-was generated from a Weibull distribution with hazard function:
-\[\log{h(t;x, age, gender, z)} = \log{h_0} + \log(1.5) \cdot x + 
-\log(1.1) \cdot gender + \log(4) \cdot z + \log(2) \cdot x \cdot z + 
-\log(1.02) \cdot age,\] where the baseline hazard \(h_0=0.0005\), and
-the scale parameter was 1. All individuals entered the cohort at time
-\(t=0\) and were followed until the event of interest or a censoring
-time (generated from an exponential distribution with a rate of 0.05)
-with a maximum follow-up time of \(t=25\). There were 2773 cases (2.8%)
-in this cohort.
+age~N(55, 10^2), Pr(male=1)=0.5, a binary exposure (x) that depends on
+gender (Pr(x = 1)=0.8 for female and 0.5 for male) and a binary effect
+modifier (Pr(z = 1)=0.3). The event time t was generated from a Weibull
+distribution with hazard function:
+
+log{h(t;x, age, gender, z)} = log{h\_0} + log(1.5) \* x + log(1.1) \*
+gender + log(4) \* z + log(2) \* x \* z + log(1.02) \* age,
+
+where the baseline hazard h\_0=0.0005, and the scale parameter was 1.
+All individuals entered the cohort at time t=0 and were followed until
+the event of interest or a censoring time (generated from an exponential
+distribution with a rate of 0.05) with a maximum follow-up time of t=25.
+There were 2773 cases (2.8%) in this cohort.
 
 ## 1:5 NCC matched on age and gender
 
