@@ -1,0 +1,224 @@
+---
+title: "Example Usages of SamplingDesignTools"
+author: "Ning Yilin"
+date: "Created on 2020-05-29. Updated on `r Sys.Date()`"
+output: 
+  html_document:
+knit: (function(input_file, encoding) {
+  rmarkdown::render(input_file,
+  encoding=encoding,
+  output_file='README.md')})
+---
+
+```{r setup, include=FALSE}
+set.seed(1234)
+library(knitr)
+opts_chunk$set(echo = TRUE, collapse = TRUE)
+print_percent <- function(prop, n_digits = 1) {
+  str <- paste0("%.", n_digits, "f%%")
+  sprintf(str, prop * 100)
+}
+```
+
+# 0 Preparation
+
+Install the SamplingDesignTools package from GitHub and load additional packages
+used.
+
+```{r}
+library(SamplingDesignTools)
+library(survival)
+library(dplyr)
+library(Epi) # To draw (non-counter-matched) nested case-control sample
+```
+
+# 1 Drawing counter-matched sample
+
+```{r}
+data(cohort_1)
+head(cohort_1)
+m_cox_cohort_1 <- coxph(Surv(t, y) ~ age + gender, data = cohort_1)
+```
+
+In this example, I am using a simulated cohort with 10,000 subjects, where a
+continuous exposure ($x \sim N(55, 10^2)$) represents their age and a binary
+covariate indicates their gender ($c = 1$ for male, $Pr(c=1)=0.5$).
+
+The event time $t$ was generated from a Weibull distribution with hazard
+function:
+$$\log{h(t; x, c)} = \log{h_0} + \log(1.1) \cdot x + \log(2) \cdot c,$$
+where the baseline hazard $h_0 = 10^{-5}$ and the scale parameter was 1. All
+individuals entered the cohort at time $t=0$ and were followed until the event
+of interest or a censoring time (generated from an exponential distribution with
+a rate of 0.05) with a maximum follow-up time of $t=25$. There were 
+`r sum(cohort_1$y == 1)` cases (`r print_percent(mean(cohort_1$y))`) in this
+cohort.
+
+## Counter-match on binary surrogate
+
+In this analysis, I dichotomised the continuous exposure at 50 years of age, and
+drew a 1:1 time-matched sample counter matched on this binary variable that is
+considered as a surrogate for the exposure. This sample was analysed using a
+weighted conditional logistic model, where log of sampling weights were
+specified as offset in the model.
+
+```{r}
+cohort_1$age_bin <- as.numeric(cohort_1$age < 50)
+table(cohort_1$age_bin)
+ncc_cm_bin <- draw_ncc_cm(cohort = cohort_1, y_name = "y", t_name = "t", 
+                          match_var_name = "age_bin", 
+                          include_var_name = c("age", "gender"), ml = 1)
+head(ncc_cm_bin, 10)
+table(ncc_cm_bin$age_bin, ncc_cm_bin$y)
+m_clogit_bin <- clogit(y ~ age + gender + strata(set) + offset(log(weight)), 
+                       data = ncc_cm_bin)
+```
+
+## Counter-match on categorical surrogate
+
+In this analysis, I categorised the continuous exposure into 4 categories at 40,
+50 and 60 years of age, and drew a 1:3 time-matched sample counter matched on
+this categorical variable that is considered as a surrogate for the exposure.
+This sample was again analysed using a weighted conditional logistic model.
+
+```{r}
+cohort_1$age_quart <- cut(cohort_1$age, breaks = c(-Inf, 40, 50, 60, Inf), 
+                          labels = 1:4, include.lowest = TRUE)
+table(cohort_1$age_quart)
+ncc_cm_quart <- draw_ncc_cm(cohort = cohort_1, y_name = "y", t_name = "t", 
+                            match_var_name = "age_quart", 
+                            include_var_name = c("age", "gender"), ml = 1)
+head(ncc_cm_quart, 20)
+table(ncc_cm_quart$age_quart)
+m_clogit_quart <- clogit(y ~ age + gender + strata(set) + offset(log(weight)), 
+                         data = ncc_cm_quart)
+```
+
+## Compare results
+
+```{r}
+results_1 <- rbind(summary(m_cox_cohort_1)$coef, 
+                   summary(m_clogit_bin)$coef, 
+                   summary(m_clogit_quart)$coef)
+rownames(results_1) <- NULL
+kable(data.frame(
+  Data = c("Full cohort", "", "1:1 NCC-CM", "", "1:3 NCC-CM", ""), 
+  Variable = rep(c("Age", "Male"), 3), 
+  `True HR` = rep(c(1.1, 2), 3),
+  `Estimated HR` = results_1[, "exp(coef)"], 
+  `SE of log(HR)` = results_1[, "se(coef)"], 
+  `p-value` = results_1[, "Pr(>|z|)"], check.names = FALSE
+), digits = c(0, 0, 1, 2, 3, 3))
+```
+
+**Notes:** 1:1 NCC-CM indicates the analysis of the time-matched sample
+counter-matched on a binary surrogate. 1:3 NCC-CM indicates the analysis
+of the time-matched sample counter-matched on a surrogate with 4 categories.
+
+# 2 Dropping controls in NCC
+
+```{r}
+data(cohort_2)
+head(cohort_2)
+m_cox_cohort_2 <- coxph(Surv(t, y) ~ x * z + age + gender, data = cohort_2)
+```
+
+In this example, I use a simulated cohort with 100,000 subjects with 
+$age ~ N(55, 10^2)$, $Pr(male = 1) = 0.5$, a binary exposure ($x$) that depends
+on gender ($Pr(x = 1) = 0.8$ for female and 0.5 for male) and a binary effect 
+modifier ($Pr(z = 1) = 0.3$). The event time $t$ was generated from a Weibull
+distribution with hazard function:
+$$\log{h(t;x, age, gender, z)} = \log{h_0} + \log(1.5) \cdot x + 
+\log(1.1) \cdot gender + \log(4) \cdot z + \log(2) \cdot x \cdot z + 
+\log(1.02) \cdot age,$$
+where the baseline hazard $h_0=0.0005$, and the scale parameter was 1. All
+individuals entered the cohort at time $t=0$ and were followed until the event
+of interest or a censoring time (generated from an exponential distribution with
+a rate of 0.05) with a maximum follow-up time of $t=25$. There were
+`r sum(cohort_2$y == 1)` cases (`r print_percent(mean(cohort_2$y))`) in this
+cohort.
+
+## 1:5 NCC matched on age and gender
+
+Subjects were divided into 6 age groups: <35, 36-45, 46-55, 56-65, 66-75 and >75.
+A 1:5 NCC sample was draw from the cohort, matched on age group and gender. 
+
+```{r}
+n_per_case <- 5
+ncc_2 <- ccwc(exit = t, fail = y, controls = n_per_case, 
+              match = list(age_cat, gender), include = list(x, age, z), 
+              data = cohort_2)
+names(ncc_2)[-(1:4)] <- c("age_cat", "gender", "x", "age", "z")
+head(ncc_2, 12)
+# Create the sampling and status indicator
+sample_stat <- numeric(nrow(cohort_2))
+sample_stat[unique(ncc_2$Map[ncc_2$Fail == 0])] <- 1
+sample_stat[ncc_2$Map[ncc_2$Fail == 1]] <- 2
+table(sample_stat)
+ncc_2_nodup <- compute_km_weights(cohort = cohort_2, t_name = "t", y_name = "y",
+                                  sample_stat = sample_stat, 
+                                  match_var_names = c("age_cat", "gender"), 
+                                  n_per_case = n_per_case)
+head(ncc_2_nodup, 12)
+summary(ncc_2_nodup$km_weight)
+m_cox_ncc_2 <- coxph(Surv(t, y) ~ x * z + gender + age, data = ncc_2_nodup,
+                     weights = km_weight, robust = TRUE)
+m_clogit_ncc_2 <- clogit(Fail ~ x * z + strata(Set), data = ncc_2)
+```
+
+## 1:5 NCC with 3 controls dropped
+
+I dropped 3 controls from each sampled set, and only kept the information on the 
+exposure for the cases and controls left.
+
+```{r}
+n_kept <- 2
+# Only keep the case and the first 2 controls
+i_case <- which(ncc_2$Fail == 1)
+i_kept <- rep(i_case, each = n_kept + 1) + rep(0:n_kept, length(i_case))
+ncc_2_drop3 <- ncc_2[i_kept, ]
+keep_stat <- numeric(nrow(cohort_2))
+keep_stat[ncc_2_drop3$Map] <- 1
+table(sample_stat, keep_stat)
+ncc_2_nodup_drop3 <- compute_km_weights(cohort = cohort_2, t_name = "t", y_name = "y",
+                                        sample_stat = sample_stat, keep_stat = keep_stat,
+                                        match_var_names = c("age_cat", "gender"), 
+                                        n_per_case = n_per_case, n_kept = n_kept)
+head(ncc_2_nodup_drop3, 12)
+summary(ncc_2_nodup_drop3$km_weight)
+m_cox_ncc_2_drop3 <- coxph(Surv(t, y) ~ x * z + gender + age, data = ncc_2_nodup_drop3,
+                           weights = km_weight, robust = TRUE)
+m_clogit_ncc_2_drop3 <- clogit(Fail ~ x * z + strata(Set), data = ncc_2_drop3)
+```
+
+## Compare results
+
+```{r}
+results_2 <- rbind(summary(m_cox_cohort_2)$coef, 
+                   summary(m_clogit_ncc_2)$coef, 
+                   summary(m_cox_ncc_2)$coef[, -3], 
+                   summary(m_clogit_ncc_2_drop3)$coef,
+                   summary(m_cox_ncc_2_drop3)$coef[, -3])
+results_2 <- data.frame(Variable = rownames(results_2), results_2, 
+                        check.names = FALSE)
+rownames(results_2) <- NULL
+kable(data.frame(
+  Data = c("Full cohort", rep("", 4), 
+           "1:5 NCC (clogit)", rep("", 2), "1:5 NCC (weighted Cox)", rep("", 4),
+           "1:5 NCC keep 2 controls (clogit)", rep("", 2),
+           "1:5 NCC keep 2 controls (weighted Cox)", rep("", 4)), 
+  Variable = results_2$Variable, 
+  `True HR` = c(c(1.5, 4, 1.01, 1.01, 2), 
+                c(1.5, 4, 2), c(1.5, 4, 1.01, 1.01, 2), 
+                c(1.5, 4, 2), c(1.5, 4, 1.01, 1.01, 2)),
+  `Estimated HR` = results_2[, "exp(coef)"], 
+  `SE of log(HR)` = results_2[, "se(coef)"], 
+  `p-value` = results_2[, "Pr(>|z|)"], check.names = FALSE
+), digits = c(0, 0, 2, 2, 3, 3))
+```
+
+**Notes:** 1:5 NCC indicates the weighted analysis of the NCC without dropping
+any controls. 1:5 NCC keep 2 controls indicates the weighted analysis of the NCC
+data where only the cases and 2 controls from each set are used. Each NCC data 
+was first analysed using conditional logistic regression, and then weighted Cox 
+model after breaking the matching.
