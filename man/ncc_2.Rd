@@ -5,7 +5,7 @@
 \alias{ncc_2}
 \title{Nested case-control (NCC) data 2}
 \format{
-A data frame with 16638 rows and 9 variables:
+A data frame with 16638 rows and 10 variables:
 \describe{
   \item{Set}{Set ID.}
   \item{Map}{Row numbers in \code{cohort_2}.}
@@ -16,13 +16,14 @@ A data frame with 16638 rows and 9 variables:
   \item{x}{Binary exposure.}
   \item{age}{Age of subjects (rounded to integers).}
   \item{z}{Binary effect modifier.}
+  \item{t}{Actual time/censoring (in years) of each subject.}
 }
 }
 \usage{
 ncc_2
 }
 \description{
-NCC data drawn from \code{\link{cohort_2}} matched on , with one  
-controls matched to each case.
+NCC data drawn from \code{\link{cohort_2}} matched on age group
+  and gender, with five controls matched to each case.
 }
 \keyword{datasets}

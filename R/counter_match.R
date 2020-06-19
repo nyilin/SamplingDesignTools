@@ -2,12 +2,9 @@
 #' @param cohort Cohort data. A \code{data.frame} or a matrix with column names.
 #' @param y_name Name of the variable in \code{cohort} indicating the
 #'   event-censoring status of each subject, where 1 indicates events. A
-#'   \code{string}. If a vector is supplied, only the first element will be
-#'   used.
+#'   \code{string}. 
 #' @param t_name Name of the variable in \code{cohort} for the time of event or
-#'   censoring. A \code{string}. Currently do not support scenarios where
-#'   subjects enter the cohort at different time. If a vector is supplied, only
-#'   the first element will be used.
+#'   censoring. A \code{string}. 
 #' @param match_var_name Name of the categorical variable in \code{cohort} to
 #'   count-match on, which can be the exposure or the surrogate for the
 #'   exposure. A \code{string}. If a vector is supplied, only the first element

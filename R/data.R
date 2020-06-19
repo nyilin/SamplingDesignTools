@@ -43,10 +43,10 @@
 
 #' Nested case-control (NCC) data 2
 #' 
-#' @description NCC data drawn from \code{\link{cohort_2}} matched on , with one  
-#' controls matched to each case.
+#' @description NCC data drawn from \code{\link{cohort_2}} matched on age group
+#'   and gender, with five controls matched to each case.
 #' 
-#' @format A data frame with 16638 rows and 9 variables:
+#' @format A data frame with 16638 rows and 10 variables:
 #' \describe{
 #'   \item{Set}{Set ID.}
 #'   \item{Map}{Row numbers in \code{cohort_2}.}
@@ -57,5 +57,20 @@
 #'   \item{x}{Binary exposure.}
 #'   \item{age}{Age of subjects (rounded to integers).}
 #'   \item{z}{Binary effect modifier.}
+#'   \item{t}{Actual time/censoring (in years) of each subject.}
 #' }
 "ncc_2"
+
+#' Number of subjects at risk at each time point in \code{ncc_2}
+#' 
+#' @format A data frame with 2773 rows and 4 variables:
+#' \describe{
+#'   \item{t}{Event time (in years) of cases in \code{ncc_2}.}
+#'   \item{gender}{Gender of subjects (1 for male and 0 for female).}
+#'   \item{age_cat}{Age category of subjects.}
+#'   \item{n.risk}{Number of subjects at risk at each event time in each gender-age strata.}
+#' }
+#' @details Note how column names in \code{n_at_risk} match those in
+#'   \code{ncc_2}. This is critical for computing the KM-type weights for
+#'   subjects in \code{ncc_2}.
+"n_at_risk"

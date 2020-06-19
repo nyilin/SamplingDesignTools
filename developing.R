@@ -1,4 +1,3 @@
-
 #' Compute Kaplan-Meier type weights for counter-matched NCC
 #' @inheritParams compute_km_weights
 #' @param match_var_name Name of the categorical variable in \code{cohort} to
@@ -78,3 +77,5 @@ compute_km_weights_cm <- function(cohort, t_name = NULL, y_name = NULL,
   }))
   cbind(ncc_nodup, km_prob = p_ncc, km_weight = 1 / p_ncc)
 }
+
+

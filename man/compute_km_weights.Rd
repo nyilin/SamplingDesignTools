@@ -6,10 +6,15 @@
 controls}
 \usage{
 compute_km_weights(
-  cohort,
+  cohort = NULL,
+  ncc = NULL,
+  n_at_risk = NULL,
   t_name = NULL,
   y_name = NULL,
-  sample_stat,
+  t_match_name = t_name,
+  id_name = NULL,
+  set_id_name = NULL,
+  sample_stat = NULL,
   keep_stat = NULL,
   match_var_names = NULL,
   n_per_case,
@@ -19,15 +24,23 @@ compute_km_weights(
 \arguments{
 \item{cohort}{Cohort data. A \code{data.frame} or a matrix with column names.}
 
+\item{ncc}{(Matched) NCC data, if \code{cohort} is not available. A
+\code{data.frame} or a matrix with column names. See Details below.}
+
+\item{n_at_risk}{Number of subjects at risk at time of each cases in the NCC,
+if \code{cohort} is not available. A \code{data.frame}, a matrix with
+column names, or the path to the file that contains this information. See
+Details below.}
+
 \item{t_name}{Name of the variable in \code{cohort} for the time of event or
-censoring. A \code{string}. Currently do not support scenarios where
-subjects enter the cohort at different time. If a vector is supplied, only
-the first element will be used.}
+censoring. A \code{string}.}
 
 \item{y_name}{Name of the variable in \code{cohort} indicating the
 event-censoring status of each subject, where 1 indicates events. A
-\code{string}. If a vector is supplied, only the first element will be
-used.}
+\code{string}.}
+
+\item{t_match_name}{Name of the time variable in \code{ncc} that is used to
+match cases with controls. A \code{string}. See Details below.}
 
 \item{sample_stat}{A numeric vector containing sampling and status
 information for each subject in \code{cohort}: use 0 for non-sampled
@@ -57,22 +70,44 @@ controls
 }
 \examples{
 # Load cohort data
-data(cohort_1)
-head(cohort_1)
-# Load an NCC sampled drawn from cohort_1 using the following code
-# ncc_1 <- Epi::ccwc(exit = t, fail = y, controls = 1, 
-#                    include = list(age, gender), data = cohort_1)
-data(ncc_1)
-head(ncc_1)
+data(cohort_2)
+head(cohort_2)
+# Load an NCC sampled drawn from cohort_2 using the following code
+# ncc_2 <- Epi::ccwc(exit = t, fail = y, controls = 5, 
+#                    match = list(age_cat, gender), include = list(x, age, z), 
+#                    data = cohort_2)
+data(ncc_2)
+head(ncc_2)
 # Map the NCC sample to the original cohort, break the matching, identify the 
 # subjects selected into the NCC, and return this subset with KM type weights 
 # computed for them.
 # First create the sampling and status indicator:
-sample_stat <- numeric(nrow(cohort_1))
-sample_stat[unique(ncc_1$Map[ncc_1$Fail == 0])] <- 1
-sample_stat[ncc_1$Map[ncc_1$Fail == 1]] <- 2
+sample_stat <- numeric(nrow(cohort_2))
+sample_stat[unique(ncc_2$Map[ncc_2$Fail == 0])] <- 1
+sample_stat[ncc_2$Map[ncc_2$Fail == 1]] <- 2
 # Then find the sampled subset and compute weights:
-ncc_nodup <- compute_km_weights(cohort = cohort_1, t_name = "t", y_name = "y",
-                                sample_stat = sample_stat, n_per_case = 1)
+ncc_nodup <- compute_km_weights(cohort = cohort_2, t_name = "t", y_name = "y",
+                                sample_stat = sample_stat, n_per_case = 5)
 head(ncc_nodup)
+# Alternatively, if the cohort is not available, the weights can be computed 
+# as long as number of subjects at risk at event times in each strata is 
+# available elsewhere, and the actual time of event/censoring is available 
+# for each subject in the NCC.
+# Load the number of subjects at risk from cohort_2:
+data(n_at_risk)
+head(n_at_risk)
+# Note that column names in `n_at_risk` must match column names in `ncc_2`.
+# In ncc_2, `Time` is the time of event within each matched set, and `t` is 
+# the actual time of event/censoring. The following command computes the same 
+# weights as in ncc_nodup:
+ncc_nodup_v2 <- compute_km_weights(ncc = ncc_2, n_at_risk = n_at_risk, 
+                                   t_name = "t", y_name = "Fail", 
+                                   t_match_name = "Time",
+                                   id_name = "Map", set_id_name = "Set", 
+                                   match_var_names = c("age_cat", "gender"), 
+                                   n_per_case = 5)
+head(ncc_nodup_v2)
+}
+\seealso{
+\code{\link{prep_n_at_risk}}
 }

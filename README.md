@@ -40,8 +40,8 @@ m_cox_cohort_1 <- coxph(Surv(t, y) ~ age + gender, data = cohort_1)
 ```
 
 In this example, I am using a simulated cohort with 10,000 subjects,
-where a continuous exposure (x ~ N(55, 10^2)) represents their age and a
-binary covariate indicates their gender (c = 1 for male, Pr(c=1)=0.5).
+where a continuous exposure (x \~ N(55, 10^2)) represents their age and
+a binary covariate indicates their gender (c = 1 for male, Pr(c=1)=0.5).
 
 The event time t was generated from a Weibull distribution with hazard
 function:
@@ -98,8 +98,7 @@ In this analysis, I categorised the continuous exposure into 4
 categories at 40, 50 and 60 years of age, and drew a 1:3 time-matched
 sample counter matched on this categorical variable that is considered
 as a surrogate for the exposure. This sample was again analysed using a
-weighted conditional logistic
-model.
+weighted conditional logistic model.
 
 ``` r
 cohort_1$age_quart <- cut(cohort_1$age, breaks = c(-Inf, 40, 50, 60, Inf), 
@@ -188,7 +187,7 @@ m_cox_cohort_2 <- coxph(Surv(t, y) ~ x * z + age + gender, data = cohort_2)
 ```
 
 In this example, I use a simulated cohort with 100,000 subjects with
-age~N(55, 10^2), Pr(male=1)=0.5, a binary exposure (x) that depends on
+age\~N(55, 10^2), Pr(male=1)=0.5, a binary exposure (x) that depends on
 gender (Pr(x = 1)=0.8 for female and 0.5 for male) and a binary effect
 modifier (Pr(z = 1)=0.3). The event time t was generated from a Weibull
 distribution with hazard function:
@@ -212,9 +211,7 @@ age group and gender.
 n_per_case <- 5
 ncc_2 <- ccwc(exit = t, fail = y, controls = n_per_case, 
               match = list(age_cat, gender), include = list(x, age, z), 
-              data = cohort_2)
-## 
-## Sampling risk sets: .....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+              data = cohort_2, silent = TRUE)
 names(ncc_2)[-(1:4)] <- c("age_cat", "gender", "x", "age", "z")
 head(ncc_2, 12)
 ##    Set   Map      Time Fail age_cat gender x age z
@@ -288,22 +285,22 @@ ncc_2_nodup_drop3 <- compute_km_weights(cohort = cohort_2, t_name = "t", y_name 
                                         match_var_names = c("age_cat", "gender"), 
                                         n_per_case = n_per_case, n_kept = n_kept)
 head(ncc_2_nodup_drop3, 12)
-##      id y          t x age age_cat gender z    km_prob km_weight
-## 36   36 1  0.2016047 1 -16 (35,45]      1 0 1.00000000   1.00000
-## 61   61 1 14.8098399 1   7 (55,65]      0 0 1.00000000   1.00000
-## 72   72 1  4.1087132 1  -1 (45,55]      0 1 1.00000000   1.00000
-## 76   76 1 20.1285244 1  15 (65,75]      0 1 1.00000000   1.00000
-## 84   84 1  5.9032539 1  -9 (45,55]      1 1 1.00000000   1.00000
-## 86   86 1  6.0871929 1  -3 (45,55]      1 0 1.00000000   1.00000
-## 116 116 0 11.6328597 1   1 (55,65]      1 0 0.04928111  20.29175
-## 121 121 0 12.5638565 1  -2 (45,55]      1 0 0.04349269  22.99237
-## 145 145 0 25.0000000 1  -2 (45,55]      1 0 0.08385424  11.92546
-## 151 151 0 23.4817749 1  -1 (45,55]      0 0 0.09013661  11.09427
-## 176 176 1 16.2877312 1   3 (55,65]      0 1 1.00000000   1.00000
-## 187 187 0 25.0000000 1  -3 (45,55]      0 0 0.09389862  10.64978
+##    id y          t x age age_cat gender z    km_prob km_weight
+## 1   1 0 25.0000000 1  -2 (45,55]      0 0 0.09389862 10.649784
+## 16 16 0 25.0000000 1  10 (65,75]      0 1 0.10487486  9.535174
+## 35 35 0 16.5202891 1  -5 (45,55]      1 1 0.05990662 16.692646
+## 36 36 1  0.2016047 1 -16 (35,45]      1 0 1.00000000  1.000000
+## 54 54 0 25.0000000 0   3 (55,65]      1 1 0.09395268 10.643656
+## 61 61 1 14.8098399 1   7 (55,65]      0 0 1.00000000  1.000000
+## 69 69 0 25.0000000 1  -1 (45,55]      1 0 0.08385424 11.925456
+## 72 72 1  4.1087132 1  -1 (45,55]      0 1 1.00000000  1.000000
+## 76 76 1 20.1285244 1  15 (65,75]      0 1 1.00000000  1.000000
+## 82 82 0  5.7436608 0   0 (45,55]      0 1 0.02522509 39.643075
+## 84 84 1  5.9032539 1  -9 (45,55]      1 1 1.00000000  1.000000
+## 86 86 1  6.0871929 1  -3 (45,55]      1 0 1.00000000  1.000000
 summary(ncc_2_nodup_drop3$km_weight)
 ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##    1.00    1.00   10.64   12.25   13.32 1205.79
+##    1.00    9.75   11.22   15.46   15.32 1205.79
 m_cox_ncc_2_drop3 <- coxph(Surv(t, y) ~ x * z + gender + age, data = ncc_2_nodup_drop3,
                            weights = km_weight, robust = TRUE)
 m_clogit_ncc_2_drop3 <- clogit(Fail ~ x * z + strata(Set), data = ncc_2_drop3)
@@ -353,11 +350,11 @@ kable(data.frame(
 | 1:5 NCC keep 2 controls (clogit)       | x        |    1.50 |         1.50 |         0.120 |   0.001 |
 |                                        | z        |    4.00 |         4.27 |         0.148 |   0.000 |
 |                                        | x:z      |    2.00 |         1.90 |         0.160 |   0.000 |
-| 1:5 NCC keep 2 controls (weighted Cox) | x        |    1.50 |         1.52 |         0.116 |   0.000 |
-|                                        | z        |    4.00 |         4.47 |         0.141 |   0.000 |
-|                                        | gender   |    1.01 |         0.95 |         0.055 |   0.313 |
-|                                        | age      |    1.01 |         1.01 |         0.003 |   0.007 |
-|                                        | x:z      |    2.00 |         1.98 |         0.153 |   0.000 |
+| 1:5 NCC keep 2 controls (weighted Cox) | x        |    1.50 |         1.51 |         0.113 |   0.000 |
+|                                        | z        |    4.00 |         4.45 |         0.133 |   0.000 |
+|                                        | gender   |    1.01 |         0.89 |         0.046 |   0.014 |
+|                                        | age      |    1.01 |         1.01 |         0.002 |   0.001 |
+|                                        | x:z      |    2.00 |         2.04 |         0.143 |   0.000 |
 
 **Notes:** 1:5 NCC indicates the weighted analysis of the NCC without
 dropping any controls. 1:5 NCC keep 2 controls indicates the weighted
@@ -365,3 +362,138 @@ analysis of the NCC data where only the cases and 2 controls from each
 set are used. Each NCC data was first analysed using conditional
 logistic regression, and then weighted Cox model after breaking the
 matching.
+
+# 3 Compute weights for NCC without full cohort
+
+In the previous section, we assumed the full cohort was available when
+computing the KM-type weight for each subject in the NCC. However, in
+reality this may not always be the case. When the cohort is not
+available, the KM-type weights can be computed for the NCC sample as
+long the time of event/censoring for each subject is available, and the
+number of subjects at risk can be obtained (or approximated) elsewhere.
+
+To illustrate this scenario, I reuse the simulated cohort from the
+previous section:
+
+``` r
+head(cohort_2)
+##   id y         t x age   age_cat gender z
+## 1  1 0 25.000000 1  -2   (45,55]      0 0
+## 2  2 0 19.819801 1  -4   (45,55]      1 0
+## 3  3 0 25.000000 1  -5   (45,55]      0 0
+## 4  4 0 12.414616 1  20 (75, Inf]      1 0
+## 5  5 0 25.000000 1  -2   (45,55]      0 1
+## 6  6 0  1.019023 0 -15   (35,45]      1 0
+```
+
+Note that `Time` is the event time of each case in a matched set, while
+`t` is the actual event/censoring time of each subject. When the full
+cohort is not available, it is often difficult to obtain the exact
+number of subject at risk at each event time if the cohort is not
+available. I simulate such situation by rounding the event/censoring
+time (`t`) to the next integer, and use this coarsened time to compute
+the number at risk:
+
+``` r
+ncc_2$t <- cohort_2$t[ncc_2$Map]
+ncc_2$t_yr <- ceiling(ncc_2$t)
+cohort_2$t_yr <- ceiling(cohort_2$t)
+km <- survfit(Surv(t_yr, y) ~ strata(gender, age_cat), data = cohort_2)
+km_summ <- summary(km)
+n_at_risk <- data.frame(strata = as.character(km_summ$strata), 
+                        t_yr = km_summ$time, 
+                        n.risk = km_summ$n.risk, stringsAsFactors = FALSE)
+n_at_risk <- cbind(n_at_risk[, -1], do.call("rbind", lapply(n_at_risk$strata, function(s) {
+  s_vec <- unlist(strsplit(s, split = "="))
+  gender <- as.numeric(unlist(strsplit(s_vec[3], split = ","))[1])
+  data.frame(gender = gender, age_cat = trimws(s_vec[4]), stringsAsFactors = FALSE)
+})))
+head(n_at_risk)
+##   t_yr n.risk gender   age_cat
+## 1    1   1165      0 (-Inf,35]
+## 2    3   1045      0 (-Inf,35]
+## 3    4    983      0 (-Inf,35]
+## 4    5    928      0 (-Inf,35]
+## 5    8    806      0 (-Inf,35]
+## 6    9    772      0 (-Inf,35]
+```
+
+Now I use this information to compute the KM-type weights and
+subsequently fit the weighted Cox model:
+
+``` r
+ncc_nodup2 <- compute_km_weights(ncc = ncc_2, n_at_risk = n_at_risk, 
+                                 t_name = "t", y_name = "Fail", 
+                                 t_match_name = "t_yr",
+                                 id_name = "Map", set_id_name = "Set", 
+                                 match_var_names = c("age_cat", "gender"), 
+                                 n_per_case = 5)
+## Joining, by = c("t_yr", "age_cat", "gender")
+m_cox_ncc_2_v2 <- coxph(Surv(Time, Fail) ~ x * z + age + gender, 
+                        data = ncc_nodup2, weights = km_weight, robust = TRUE)
+```
+
+Compare with results when the full cohort is available:
+
+``` r
+results_3 <- rbind(summary(m_cox_cohort_2)$coef, 
+                   summary(m_cox_ncc_2)$coef[, -3], 
+                   summary(m_cox_ncc_2_v2)$coef[, -3])
+results_3 <- data.frame(Variable = rownames(results_3), results_3, 
+                        check.names = FALSE)
+rownames(results_3) <- NULL
+kable(data.frame(
+  Data = c("Full cohort", rep("", 4), 
+           "1:5 NCC (weighted Cox)", rep("", 4),
+           "1:5 NCC (weighted Cox, v2)*", rep("", 4)), 
+  Variable = results_3$Variable, 
+  `True HR` = rep(c(1.5, 4, 1.01, 1.01, 2), 3),
+  `Estimated HR` = results_3[, "exp(coef)"], 
+  `SE of log(HR)` = results_3[, "se(coef)"], 
+  `p-value` = results_3[, "Pr(>|z|)"], check.names = FALSE
+), digits = c(0, 0, 2, 2, 3, 3))
+```
+
+| Data                         | Variable | True HR | Estimated HR | SE of log(HR) | p-value |
+| :--------------------------- | :------- | ------: | -----------: | ------------: | ------: |
+| Full cohort                  | x        |    1.50 |         1.47 |         0.110 |   0.001 |
+|                              | z        |    4.00 |         4.46 |         0.126 |   0.000 |
+|                              | age      |    1.01 |         1.01 |         0.002 |   0.000 |
+|                              | gender   |    1.01 |         0.92 |         0.038 |   0.024 |
+|                              | x:z      |    2.00 |         1.90 |         0.135 |   0.000 |
+| 1:5 NCC (weighted Cox)       | x        |    1.50 |         1.50 |         0.112 |   0.000 |
+|                              | z        |    4.00 |         4.41 |         0.132 |   0.000 |
+|                              | gender   |    1.01 |         0.90 |         0.045 |   0.017 |
+|                              | age      |    1.01 |         1.01 |         0.002 |   0.001 |
+|                              | x:z      |    2.00 |         2.00 |         0.142 |   0.000 |
+| 1:5 NCC (weighted Cox, v2)\* | x        |    1.50 |         1.46 |         0.110 |   0.001 |
+|                              | z        |    4.00 |         3.89 |         0.127 |   0.000 |
+|                              | age      |    1.01 |         1.00 |         0.002 |   0.602 |
+|                              | gender   |    1.01 |         0.96 |         0.038 |   0.323 |
+|                              | x:z      |    2.00 |         1.53 |         0.135 |   0.002 |
+
+\*: Using the KM-type weights computed from the approximate number at
+risk obtained in this section.
+
+In reality, number at risk at each event time may be approximated by,
+e.g., size of the relevant sub-population at mid-year. In such case,
+user may use the following function to generate a template for
+`n_at_risk` to fill in:
+
+``` r
+n_at_risk <- prep_n_at_risk(ncc = ncc_2, t_match_name = "t_yr", y_name = "Fail", 
+                            match_var_names = c("gender", "age_cat"), 
+                            csv_file = NULL)
+head(n_at_risk)
+##   t_yr gender   age_cat n.risk
+## 1    1      0 (-Inf,35]     NA
+## 2    1      0   (35,45]     NA
+## 3    1      0   (45,55]     NA
+## 4    1      0   (55,65]     NA
+## 5    1      0   (65,75]     NA
+## 6    1      0 (75, Inf]     NA
+```
+
+This template will be written to a `csv` if specified by `csv_file`,
+making it easier to supply information regarding the cohort that is
+required for computing the KM-type weights.

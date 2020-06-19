@@ -2,5 +2,6 @@
 
 export(compute_km_weights)
 export(draw_ncc_cm)
+export(prep_n_at_risk)
 import(dplyr)
 import(survival)
