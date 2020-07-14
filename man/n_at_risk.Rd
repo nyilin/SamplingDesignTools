@@ -7,7 +7,7 @@
 \format{
 A data frame with 2773 rows and 4 variables:
 \describe{
-  \item{t}{Event time (in years) of cases in \code{ncc_2}.}
+  \item{Time}{Event time (in years) of cases in \code{ncc_2}.}
   \item{gender}{Gender of subjects (1 for male and 0 for female).}
   \item{age_cat}{Age category of subjects.}
   \item{n.risk}{Number of subjects at risk at each event time in each gender-age strata.}

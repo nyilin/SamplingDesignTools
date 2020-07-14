@@ -17,10 +17,10 @@ prep_n_at_risk(
 \item{ncc}{Nested case-control data. A \code{data.frame} or a matrix with
 column names.}
 
-\item{t_match_name}{Name of the time variable in \code{ncc} that is used to
-match cases with controls. A \code{string}. Time should be recorded in a
-reasonable resolution of measurement (e.g., in months or years) such that
-the number of subjects at risk in the cohort is available.}
+\item{t_match_name}{Name of the column of event time in each matched set in
+\code{ncc}. A \code{string}. Time should be recorded in a reasonable
+resolution of measurement (e.g., in months or years) such that the number
+of subjects at risk in the cohort is available.}
 
 \item{csv_file}{Name of CSV file to write the template to. If left
 unspecified, the template will be returned as a \code{data.frame} instead.}

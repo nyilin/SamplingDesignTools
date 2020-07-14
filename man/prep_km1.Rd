@@ -19,7 +19,10 @@ prep_km1(
 \item{cohort}{Cohort data. A \code{data.frame} or a matrix with column names.}
 
 \item{t_name}{Name of the variable in \code{cohort} for the time of event or
-censoring. A \code{string}.}
+censoring. A \code{string}. Note that if \code{ncc} is supplied, in order
+to correctly compute the weight for each sampled control this should be the
+actual time of censoring, not the time of event of the case in the same
+matched set.}
 
 \item{y_name}{Name of the variable in \code{cohort} indicating the
 event-censoring status of each subject, where 1 indicates events. A
@@ -34,12 +37,12 @@ of this vector must be the same as the number of rows in \code{cohort}.}
 \code{cohort} are kept in the final NCC: use 1 for subjects who were in the
 final NCC, and 0 for subjects who were kept or never selected. The length
 of this vector must be the same as the number of rows in \code{cohort}.
-When unspecified, the function assumes all subjects are kept in the final
-NCC.}
+When unspecified, the function keeps all subjects in the final NCC.}
 
 \item{match_var_names}{Name(s) of the match variable(s) in \code{cohort} used
 when drawing the NCC. A \code{string} vector. Default is \code{NULL}, i.e.,
-the NCC was only time-matched.}
+the NCC was only time-matched. The corresponding column in \code{n_at_risk}
+must have the same name.}
 
 \item{n_per_case}{Number of controls matched to each case.}
 }

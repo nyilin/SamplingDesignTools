@@ -279,7 +279,7 @@ ncc_nodup2 <- compute_km_weights(ncc = ncc_2, n_at_risk = n_at_risk,
                                  id_name = "Map", set_id_name = "Set", 
                                  match_var_names = c("age_cat", "gender"), 
                                  n_per_case = 5)
-m_cox_ncc_2_v2 <- coxph(Surv(Time, Fail) ~ x * z + age + gender, 
+m_cox_ncc_2_v2 <- coxph(Surv(t, Fail) ~ x * z + age + gender, 
                         data = ncc_nodup2, weights = km_weight, robust = TRUE)
 ```
 

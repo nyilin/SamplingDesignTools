@@ -25,22 +25,37 @@ compute_km_weights(
 \item{cohort}{Cohort data. A \code{data.frame} or a matrix with column names.}
 
 \item{ncc}{(Matched) NCC data, if \code{cohort} is not available. A
-\code{data.frame} or a matrix with column names. See Details below.}
+\code{data.frame} or a matrix with column names. In addition to the time of 
+event in each matched set, \code{ncc} must also include another column for 
+the actual time of event or censoring of each subject. Weights computed 
+based on the time of event in each matched set (and subsequent weighted 
+analyses of this time) is generally inappropriate.}
 
 \item{n_at_risk}{Number of subjects at risk at time of each cases in the NCC,
-if \code{cohort} is not available. A \code{data.frame}, a matrix with
-column names, or the path to the file that contains this information. See
-Details below.}
+if \code{cohort} is not available. A \code{data.frame} or a matrix with
+column names. See Details.}
 
 \item{t_name}{Name of the variable in \code{cohort} for the time of event or
-censoring. A \code{string}.}
+censoring. A \code{string}. Note that if \code{ncc} is supplied, in order
+to correctly compute the weight for each sampled control this should be the
+actual time of censoring, not the time of event of the case in the same
+matched set.}
 
 \item{y_name}{Name of the variable in \code{cohort} indicating the
 event-censoring status of each subject, where 1 indicates events. A
 \code{string}.}
 
-\item{t_match_name}{Name of the time variable in \code{ncc} that is used to
-match cases with controls. A \code{string}. See Details below.}
+\item{t_match_name}{Name of the column of event time in each matched set in
+\code{ncc}. A \code{string}. Time should be recorded in a reasonable
+resolution of measurement (e.g., in months or years) such that the number
+of subjects at risk in the cohort is available. The corresponding column in
+\code{n_at_risk} must have the same name. See Details.}
+
+\item{id_name}{Name of the column indicating subject ID in \code{ncc}, if
+\code{cohort} is not available.}
+
+\item{set_id_name}{Name of the column indicating the matched sets in
+\code{ncc}, if \code{cohort} is not available.}
 
 \item{sample_stat}{A numeric vector containing sampling and status
 information for each subject in \code{cohort}: use 0 for non-sampled
@@ -51,12 +66,12 @@ of this vector must be the same as the number of rows in \code{cohort}.}
 \code{cohort} are kept in the final NCC: use 1 for subjects who were in the
 final NCC, and 0 for subjects who were kept or never selected. The length
 of this vector must be the same as the number of rows in \code{cohort}.
-When unspecified, the function assumes all subjects are kept in the final
-NCC.}
+When unspecified, the function keeps all subjects in the final NCC.}
 
 \item{match_var_names}{Name(s) of the match variable(s) in \code{cohort} used
 when drawing the NCC. A \code{string} vector. Default is \code{NULL}, i.e.,
-the NCC was only time-matched.}
+the NCC was only time-matched. The corresponding column in \code{n_at_risk}
+must have the same name.}
 
 \item{n_per_case}{Number of controls matched to each case.}
 
@@ -67,6 +82,23 @@ the final NCC.}
 \description{
 Compute Kaplan-Meier type weights for (matched) NCC, possibly with dropped
 controls
+}
+\details{
+When the full cohort is not available, in order to compute the
+  correct weights for each sampled control in the NCC sample, it is important
+  to keep the actual time of event or censoring of each subject in the NCC
+  sample, which should be specified as \code{t_name} in the input. Since the 
+  number of subjects in each risk set will be supplied separately (i.e., as 
+  \code{n_at_risk}) in such scenario, \code{t_match_name} is required to 
+  map each control to the appropriate risk set. \code{t_match_name} may be 
+  the same as \code{t_name} if the exact risk set is available in 
+  \code{n_at_risk}, but when the full cohort is not available the risk set is 
+  usually approximated by using a coarsened version of \code{t_name}. For 
+  example, when controls were drawn from a population registry by matching on
+  the exact date of death of cases, birth cohort and gender, the number at
+  risk may be approximated by using the population size in the year of event
+  in the same birth cohort of the same gender. In this scenario
+  \code{t_match_name} would be the year of \code{t_name}.
 }
 \examples{
 # Load cohort data

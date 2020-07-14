@@ -69,6 +69,12 @@ prep_km2 <- function(ncc, n_at_risk, id_name, set_id_name,
                      match_var_names = NULL, n_per_case) {
   ncc <- as.data.frame(ncc, stringsAsFactors = FALSE)
   n_at_risk <- as.data.frame(n_at_risk, stringsAsFactors = FALSE)
+  if (!(id_name %in% names(ncc))) {
+    stop(simpleError(paste(id_name, "not found in ncc")))
+  }
+  if (!(set_id_name %in% names(ncc))) {
+    stop(simpleError(paste(set_id_name, "not found in ncc")))
+  }
   if (!(y_name %in% names(ncc))) {
     stop(simpleError(paste(y_name, "not found in ncc")))
   }
@@ -166,10 +172,10 @@ prep_km2 <- function(ncc, n_at_risk, id_name, set_id_name,
 #'   time within each stratum (if applicable).
 #' @param ncc Nested case-control data. A \code{data.frame} or a matrix with
 #'   column names.
-#' @param t_match_name Name of the time variable in \code{ncc} that is used to
-#'   match cases with controls. A \code{string}. Time should be recorded in a
-#'   reasonable resolution of measurement (e.g., in months or years) such that
-#'   the number of subjects at risk in the cohort is available.
+#' @param t_match_name Name of the column of event time in each matched set in
+#'   \code{ncc}. A \code{string}. Time should be recorded in a reasonable
+#'   resolution of measurement (e.g., in months or years) such that the number
+#'   of subjects at risk in the cohort is available.
 #' @param csv_file Name of CSV file to write the template to. If left
 #'   unspecified, the template will be returned as a \code{data.frame} instead.
 #' @return If \code{csv_file} is not supplied, this function returns a
@@ -221,16 +227,32 @@ prep_n_at_risk <- function(ncc, t_match_name, y_name, match_var_names = NULL,
 #' controls
 #' @inheritParams draw_ncc_cm
 #' @param ncc (Matched) NCC data, if \code{cohort} is not available. A
-#'   \code{data.frame} or a matrix with column names. See Details below.
+#'   \code{data.frame} or a matrix with column names. In addition to the time of 
+#'   event in each matched set, \code{ncc} must also include another column for 
+#'   the actual time of event or censoring of each subject. Weights computed 
+#'   based on the time of event in each matched set (and subsequent weighted 
+#'   analyses of this time) is generally inappropriate.
 #' @param n_at_risk Number of subjects at risk at time of each cases in the NCC,
-#'   if \code{cohort} is not available. A \code{data.frame}, a matrix with
-#'   column names, or the path to the file that contains this information. See
-#'   Details below.
-#' @param t_match_name Name of the time variable in \code{ncc} that is used to
-#'   match cases with controls. A \code{string}. See Details below.
+#'   if \code{cohort} is not available. A \code{data.frame} or a matrix with
+#'   column names. See Details.
+#' @param t_name Name of the variable in \code{cohort} for the time of event or
+#'   censoring. A \code{string}. Note that if \code{ncc} is supplied, in order
+#'   to correctly compute the weight for each sampled control this should be the
+#'   actual time of censoring, not the time of event of the case in the same
+#'   matched set.
+#' @param t_match_name Name of the column of event time in each matched set in
+#'   \code{ncc}. A \code{string}. Time should be recorded in a reasonable
+#'   resolution of measurement (e.g., in months or years) such that the number
+#'   of subjects at risk in the cohort is available. The corresponding column in
+#'   \code{n_at_risk} must have the same name. See Details.
 #' @param match_var_names Name(s) of the match variable(s) in \code{cohort} used
 #'   when drawing the NCC. A \code{string} vector. Default is \code{NULL}, i.e.,
-#'   the NCC was only time-matched.
+#'   the NCC was only time-matched. The corresponding column in \code{n_at_risk}
+#'   must have the same name.
+#' @param id_name Name of the column indicating subject ID in \code{ncc}, if
+#'   \code{cohort} is not available.
+#' @param set_id_name Name of the column indicating the matched sets in
+#'   \code{ncc}, if \code{cohort} is not available.
 #' @param sample_stat A numeric vector containing sampling and status
 #'   information for each subject in \code{cohort}: use 0 for non-sampled
 #'   controls, 1 for sampled controls, and integers >=2 for events. The length 
@@ -239,12 +261,26 @@ prep_n_at_risk <- function(ncc, t_match_name, y_name, match_var_names = NULL,
 #'   \code{cohort} are kept in the final NCC: use 1 for subjects who were in the
 #'   final NCC, and 0 for subjects who were kept or never selected. The length
 #'   of this vector must be the same as the number of rows in \code{cohort}.
-#'   When unspecified, the function assumes all subjects are kept in the final
-#'   NCC.
+#'   When unspecified, the function keeps all subjects in the final NCC.
 #' @param n_per_case Number of controls matched to each case.
 #' @param n_kept Number of sampled controls in each set that were kept in the
 #'   final NCC. When unspecified, the function assumes all subjects are kept in
 #'   the final NCC.
+#' @details When the full cohort is not available, in order to compute the
+#'   correct weights for each sampled control in the NCC sample, it is important
+#'   to keep the actual time of event or censoring of each subject in the NCC
+#'   sample, which should be specified as \code{t_name} in the input. Since the 
+#'   number of subjects in each risk set will be supplied separately (i.e., as 
+#'   \code{n_at_risk}) in such scenario, \code{t_match_name} is required to 
+#'   map each control to the appropriate risk set. \code{t_match_name} may be 
+#'   the same as \code{t_name} if the exact risk set is available in 
+#'   \code{n_at_risk}, but when the full cohort is not available the risk set is 
+#'   usually approximated by using a coarsened version of \code{t_name}. For 
+#'   example, when controls were drawn from a population registry by matching on
+#'   the exact date of death of cases, birth cohort and gender, the number at
+#'   risk may be approximated by using the population size in the year of event
+#'   in the same birth cohort of the same gender. In this scenario
+#'   \code{t_match_name} would be the year of \code{t_name}.
 #' @import dplyr
 #' @export
 #' @seealso \code{\link{prep_n_at_risk}}
@@ -320,6 +356,16 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, n_at_risk = NULL,
     if (is.null(n_at_risk)) {
       stop(simpleError("If full cohort is not available, please supply the number of subjects at risk prepared using 'prep_n_at_risk' function."))
     }
+    if (is.null(id_name)) {
+      stop(simpleError("If full cohort is not available, please supply the column name of subject ID in the ncc data."))
+    } else {
+      id_name <- id_name[1]
+    }
+    if (is.null(set_id_name)) {
+      stop(simpleError("If full cohort is not available, please supply the column name of ID of matched sets in the ncc data."))
+    } else {
+      set_id_name <- set_id_name[1]
+    }
     obj <- prep_km2(ncc = ncc, n_at_risk = n_at_risk, 
                     id_name = id_name, set_id_name = set_id_name,
                     t_name = t_name, t_match_name = t_match_name, y_name = y_name, 
@@ -344,11 +390,33 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, n_at_risk = NULL,
              cumulative_product = cumprod(prob_not_sampled2),
              sampling_prob = 1 - cumulative_product)
   }
+  # km_tb <- km_tb %>% 
+  #   arrange(strata, t) %>%
+  #   group_by(strata) %>% 
+  #   mutate(t_lower = c(-Inf, km_tb$t[1:(n() - 1)]))
+  # row_ids <- 1:nrow(obj$ncc_nodup)
+  # df <- do.call("rbind", lapply(1:nrow(km_tb), function(j) {
+  #   i <- which(obj$match_var_ncc == km_tb$strata[j] & 
+  #                obj$ncc_nodup[, y_name] == 0 &
+  #                obj$ncc_nodup[, t_name] <= km_tb$t[j] & 
+  #                obj$ncc_nodup[, t_name] > km_tb$t_lower[j])
+  #   if (length(i) == 0) {
+  #     NULL
+  #   } else {
+  #     data.frame(row_ids = i, km_prob = km_tb$sampling_prob[j])
+  #   }
+  # }))
+  # ncc_nodup$km_prob[ncc_nodup[, y_name] == 1] <- 1
+  # ncc_nodup$km_weight <- 1 / ncc_nodup$km_prob
+  # ncc_nodup
   p_ncc <- unlist(lapply(1:nrow(obj$ncc_nodup), function(j) {
     if (obj$ncc_nodup[j, y_name] == 1) {
       1
     } else {
-      km_tb_i <- km_tb[km_tb$t < obj$ncc_nodup[j, t_name] & 
+      # A subject is in the risk set at time t if this subject is still under
+      # observation at t-, i.e., right before t. Hence a subject censored
+      # exactly at time t is still in the risk set for an event at t.
+      km_tb_i <- km_tb[km_tb$t <= obj$ncc_nodup[j, t_name] &
                          km_tb$strata == obj$match_var_ncc[j], ]
       r <- nrow(km_tb_i)
       if (r == 0) {

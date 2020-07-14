@@ -19,18 +19,33 @@ prep_km2(
 }
 \arguments{
 \item{ncc}{(Matched) NCC data, if \code{cohort} is not available. A
-\code{data.frame} or a matrix with column names. See Details below.}
+\code{data.frame} or a matrix with column names. In addition to the time of 
+event in each matched set, \code{ncc} must also include another column for 
+the actual time of event or censoring of each subject. Weights computed 
+based on the time of event in each matched set (and subsequent weighted 
+analyses of this time) is generally inappropriate.}
 
 \item{n_at_risk}{Number of subjects at risk at time of each cases in the NCC,
-if \code{cohort} is not available. A \code{data.frame}, a matrix with
-column names, or the path to the file that contains this information. See
-Details below.}
+if \code{cohort} is not available. A \code{data.frame} or a matrix with
+column names. See Details.}
+
+\item{id_name}{Name of the column indicating subject ID in \code{ncc}, if
+\code{cohort} is not available.}
+
+\item{set_id_name}{Name of the column indicating the matched sets in
+\code{ncc}, if \code{cohort} is not available.}
 
 \item{t_name}{Name of the variable in \code{cohort} for the time of event or
-censoring. A \code{string}.}
+censoring. A \code{string}. Note that if \code{ncc} is supplied, in order
+to correctly compute the weight for each sampled control this should be the
+actual time of censoring, not the time of event of the case in the same
+matched set.}
 
-\item{t_match_name}{Name of the time variable in \code{ncc} that is used to
-match cases with controls. A \code{string}. See Details below.}
+\item{t_match_name}{Name of the column of event time in each matched set in
+\code{ncc}. A \code{string}. Time should be recorded in a reasonable
+resolution of measurement (e.g., in months or years) such that the number
+of subjects at risk in the cohort is available. The corresponding column in
+\code{n_at_risk} must have the same name. See Details.}
 
 \item{y_name}{Name of the variable in \code{cohort} indicating the
 event-censoring status of each subject, where 1 indicates events. A
@@ -38,7 +53,8 @@ event-censoring status of each subject, where 1 indicates events. A
 
 \item{match_var_names}{Name(s) of the match variable(s) in \code{cohort} used
 when drawing the NCC. A \code{string} vector. Default is \code{NULL}, i.e.,
-the NCC was only time-matched.}
+the NCC was only time-matched. The corresponding column in \code{n_at_risk}
+must have the same name.}
 
 \item{n_per_case}{Number of controls matched to each case.}
 }
