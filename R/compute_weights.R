@@ -3,11 +3,19 @@
 #' @inheritParams compute_km_weights
 #' @import survival
 #' @import dplyr
-prep_km1 <- function(cohort, t_name, y_name, sample_stat, keep_stat = NULL, 
-                     match_var_names = NULL, n_per_case) {
+prep_km1 <- function(cohort, t_start_name = NULL, t_name, y_name, sample_stat, 
+                     keep_stat = NULL, match_var_names = NULL, n_per_case) {
   cohort <- as.data.frame(cohort)
   if (!(y_name %in% names(cohort))) {
     stop(simpleError(paste(y_name, "not found in cohort.")))
+  }
+  if (!is.null(t_start_name)) {
+    if (!(t_start_name %in% names(cohort))) {
+      stop(simpleError(paste(t_start_name, "not found in cohort.")))
+    }
+    t_start <- cohort[, t_start_name] # Different subject start follow-up at different time
+  } else {
+    t_start <- rep(0, nrow(cohort)) # All subjects started follow-up at time 0
   }
   if (!(t_name %in% names(cohort))) {
     stop(simpleError(paste(t_name, "not found in cohort.")))
@@ -33,7 +41,7 @@ prep_km1 <- function(cohort, t_name, y_name, sample_stat, keep_stat = NULL,
   y <- as.numeric(sample_stat >= 2)
   if (is.null(match_var_names)) {
     match_var <- rep(1, nrow(cohort))
-    km <- survfit(Surv(t, y) ~ 1)
+    km <- survfit(Surv(t_start, t, y) ~ 1)
     km_summ <- summary(km)
     km_tb <- data.frame(t = km_summ$time, Rj = km_summ$n.risk - km_summ$n.event,
                         strata = "match_var=1", 
@@ -47,7 +55,7 @@ prep_km1 <- function(cohort, t_name, y_name, sample_stat, keep_stat = NULL,
     match_var <- apply(mat, 1, function(row) paste(row, collapse = "-"))
     # Make sure the levels are integers starting from 1
     match_var <- factor(as.numeric(factor(match_var)))
-    km <- survfit(Surv(t, y) ~ match_var)
+    km <- survfit(Surv(t_start, t, y) ~ match_var)
     km_summ <- summary(km)
     km_tb <- data.frame(t = km_summ$time, n.risk = km_summ$n.risk, 
                         n.event = km_summ$n.event, 
@@ -58,7 +66,7 @@ prep_km1 <- function(cohort, t_name, y_name, sample_stat, keep_stat = NULL,
   }
   in_ncc <- sample_stat > 0 & keep_stat == 1
   list(km_tb = km_tb, match_var_ncc = paste0("match_var=", match_var[in_ncc]), 
-       ncc_nodup = cohort[in_ncc, ])
+       t_start = t_start, ncc_nodup = cohort[in_ncc, ])
 }
 #' Assemble KM table and NCC data without duplicates when cohort data is not
 #' available
@@ -235,6 +243,10 @@ prep_n_at_risk <- function(ncc, t_match_name, y_name, match_var_names = NULL,
 #' @param n_at_risk Number of subjects at risk at time of each cases in the NCC,
 #'   if \code{cohort} is not available. A \code{data.frame} or a matrix with
 #'   column names. See Details.
+#' @param t_start_name Name of the variable in \code{cohort} for the start time
+#'   of follow-up. A \code{string}. Default is \code{NULL}, i.e., every subject
+#'   started the follow-up at time 0. This is not yet implemented when the
+#'   cohort data is not available.
 #' @param t_name Name of the variable in \code{cohort} for the time of event or
 #'   censoring. A \code{string}. Note that if \code{ncc} is supplied, in order
 #'   to correctly compute the weight for each sampled control this should be the
@@ -324,7 +336,7 @@ prep_n_at_risk <- function(ncc, t_match_name, y_name, match_var_names = NULL,
 #'                                    n_per_case = 5)
 #' head(ncc_nodup_v2)
 compute_km_weights <- function(cohort = NULL, ncc = NULL, n_at_risk = NULL, 
-                               t_name = NULL, y_name = NULL, 
+                               t_start_name = NULL, t_name = NULL, y_name = NULL, 
                                t_match_name = t_name, 
                                id_name = NULL, set_id_name = NULL,
                                sample_stat = NULL, keep_stat = NULL, 
@@ -345,11 +357,49 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, n_at_risk = NULL,
   }
   if (!is.null(cohort)) {
     # Full cohort is available
-    obj <- prep_km1(cohort = cohort, t_name = t_name, y_name = y_name, 
-                    sample_stat = sample_stat, match_var_names = match_var_names, 
-                    n_per_case = n_per_case)
+    obj <- prep_km1(cohort = cohort, t_start_name = t_start_name, t_name = t_name, 
+                    y_name = y_name, sample_stat = sample_stat, 
+                    match_var_names = match_var_names, n_per_case = n_per_case)
+    if (is.null(n_kept)) { # All are kept
+      km_tb <- obj$km_tb %>%
+        group_by(strata) %>% 
+        mutate(prob_not_sampled = 1 - (n_per_case / Rj))
+    } else {
+      km_tb <- obj$km_tb %>%
+        group_by(strata) %>% 
+        # p_not_sampled = p(not selected) + p(selected but then dropped)
+        mutate(prob_not_sampled0 = 1 - (n_per_case / Rj),
+               prob_not_sampled = prob_not_sampled0 + # not selected
+                 (1 - prob_not_sampled0) * 
+                 (choose(n = n_per_case - 1, k = n_kept) / 
+                    choose(n = n_per_case, k = n_kept))) # selected, but not kept
+    }
+    do.call("rbind", lapply(1:nrow(obj$ncc_nodup), function(j) {
+      ncc_nodup_j <- obj$ncc_nodup[j, ]
+      if (ncc_nodup_j[, y_name] == 1) {
+        km_prob <- 1
+      } else {
+        # A subject is in the risk set at time t if this subject is still under
+        # observation at t-, i.e., right before t. Hence a subject censored
+        # exactly at time t is still in the risk set for an event at t.
+        km_tb_i <- km_tb %>% 
+          filter(strata == obj$match_var_ncc[j], 
+                 t > obj$t_start[j], t <= ncc_nodup_j[, t_name])
+        if (nrow(km_tb_i) == 0) {
+          km_prob <- 0
+        } else {
+          km_prob <- 1 - prod(km_tb_i$prob_not_sampled)
+        }
+      }
+      ncc_nodup_j$km_prob <- km_prob
+      ncc_nodup_j$km_weight <- 1 / km_prob
+      ncc_nodup_j
+    }))
   } else {
     # Full cohort is not available
+    if (!is.null(t_start_name)) {
+      stop(simpleError("Staggered time not yet implemented when full cohort is not available."))
+    }
     if (is.null(ncc)) {
       stop(simpleError("If full cohort is not available, please supply the ncc data."))
     }
@@ -371,60 +421,41 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, n_at_risk = NULL,
                     t_name = t_name, t_match_name = t_match_name, y_name = y_name, 
                     match_var_names = match_var_names, 
                     n_per_case = n_per_case)
-  }
-  if (is.null(n_kept)) { # All are kept
-    km_tb <- obj$km_tb %>%
-      group_by(strata) %>% 
-      mutate(prob_not_sampled = 1 - (n_per_case / Rj),
-             cumulative_product = cumprod(prob_not_sampled),
-             sampling_prob = 1 - cumulative_product)
-  } else {
-    km_tb <- obj$km_tb %>%
-      group_by(strata) %>% 
-      # p_not_sampled = p(not selected) + p(selected but then dropped)
-      mutate(prob_not_sampled = 1 - (n_per_case / Rj),
-             prob_not_sampled2 = prob_not_sampled + # not selected
-               (1 - prob_not_sampled) * 
-               (choose(n = n_per_case - 1, k = n_kept) / 
-                  choose(n = n_per_case, k = n_kept)), # selected, but not kept
-             cumulative_product = cumprod(prob_not_sampled2),
-             sampling_prob = 1 - cumulative_product)
-  }
-  # km_tb <- km_tb %>% 
-  #   arrange(strata, t) %>%
-  #   group_by(strata) %>% 
-  #   mutate(t_lower = c(-Inf, km_tb$t[1:(n() - 1)]))
-  # row_ids <- 1:nrow(obj$ncc_nodup)
-  # df <- do.call("rbind", lapply(1:nrow(km_tb), function(j) {
-  #   i <- which(obj$match_var_ncc == km_tb$strata[j] & 
-  #                obj$ncc_nodup[, y_name] == 0 &
-  #                obj$ncc_nodup[, t_name] <= km_tb$t[j] & 
-  #                obj$ncc_nodup[, t_name] > km_tb$t_lower[j])
-  #   if (length(i) == 0) {
-  #     NULL
-  #   } else {
-  #     data.frame(row_ids = i, km_prob = km_tb$sampling_prob[j])
-  #   }
-  # }))
-  # ncc_nodup$km_prob[ncc_nodup[, y_name] == 1] <- 1
-  # ncc_nodup$km_weight <- 1 / ncc_nodup$km_prob
-  # ncc_nodup
-  p_ncc <- unlist(lapply(1:nrow(obj$ncc_nodup), function(j) {
-    if (obj$ncc_nodup[j, y_name] == 1) {
-      1
+    if (is.null(n_kept)) { # All are kept
+      km_tb <- obj$km_tb %>%
+        group_by(strata) %>% 
+        mutate(prob_not_sampled = 1 - (n_per_case / Rj),
+               cumulative_product = cumprod(prob_not_sampled),
+               sampling_prob = 1 - cumulative_product)
     } else {
-      # A subject is in the risk set at time t if this subject is still under
-      # observation at t-, i.e., right before t. Hence a subject censored
-      # exactly at time t is still in the risk set for an event at t.
-      km_tb_i <- km_tb[km_tb$t <= obj$ncc_nodup[j, t_name] &
-                         km_tb$strata == obj$match_var_ncc[j], ]
-      r <- nrow(km_tb_i)
-      if (r == 0) {
-        0
-      } else {
-        km_tb_i$sampling_prob[r]
-      }
+      km_tb <- obj$km_tb %>%
+        group_by(strata) %>% 
+        # p_not_sampled = p(not selected) + p(selected but then dropped)
+        mutate(prob_not_sampled = 1 - (n_per_case / Rj),
+               prob_not_sampled2 = prob_not_sampled + # not selected
+                 (1 - prob_not_sampled) * 
+                 (choose(n = n_per_case - 1, k = n_kept) / 
+                    choose(n = n_per_case, k = n_kept)), # selected, but not kept
+               cumulative_product = cumprod(prob_not_sampled2),
+               sampling_prob = 1 - cumulative_product)
     }
-  }))
-  cbind(obj$ncc_nodup, km_prob = p_ncc, km_weight = 1 / p_ncc)
+    p_ncc <- unlist(lapply(1:nrow(obj$ncc_nodup), function(j) {
+      if (obj$ncc_nodup[j, y_name] == 1) {
+        1
+      } else {
+        # A subject is in the risk set at time t if this subject is still under
+        # observation at t-, i.e., right before t. Hence a subject censored
+        # exactly at time t is still in the risk set for an event at t.
+        km_tb_i <- km_tb[km_tb$t <= obj$ncc_nodup[j, t_name] &
+                           km_tb$strata == obj$match_var_ncc[j], ]
+        r <- nrow(km_tb_i)
+        if (r == 0) {
+          0
+        } else {
+          km_tb_i$sampling_prob[r]
+        }
+      }
+    }))
+    cbind(obj$ncc_nodup, km_prob = p_ncc, km_weight = 1 / p_ncc)
+  }
 }

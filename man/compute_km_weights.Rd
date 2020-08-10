@@ -9,6 +9,7 @@ compute_km_weights(
   cohort = NULL,
   ncc = NULL,
   n_at_risk = NULL,
+  t_start_name = NULL,
   t_name = NULL,
   y_name = NULL,
   t_match_name = t_name,
@@ -34,6 +35,11 @@ analyses of this time) is generally inappropriate.}
 \item{n_at_risk}{Number of subjects at risk at time of each cases in the NCC,
 if \code{cohort} is not available. A \code{data.frame} or a matrix with
 column names. See Details.}
+
+\item{t_start_name}{Name of the variable in \code{cohort} for the start time
+of follow-up. A \code{string}. Default is \code{NULL}, i.e., every subject
+started the follow-up at time 0. This is not yet implemented when the
+cohort data is not available.}
 
 \item{t_name}{Name of the variable in \code{cohort} for the time of event or
 censoring. A \code{string}. Note that if \code{ncc} is supplied, in order

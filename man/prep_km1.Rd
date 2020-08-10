@@ -7,6 +7,7 @@ available}
 \usage{
 prep_km1(
   cohort,
+  t_start_name = NULL,
   t_name,
   y_name,
   sample_stat,
@@ -17,6 +18,11 @@ prep_km1(
 }
 \arguments{
 \item{cohort}{Cohort data. A \code{data.frame} or a matrix with column names.}
+
+\item{t_start_name}{Name of the variable in \code{cohort} for the start time
+of follow-up. A \code{string}. Default is \code{NULL}, i.e., every subject
+started the follow-up at time 0. This is not yet implemented when the
+cohort data is not available.}
 
 \item{t_name}{Name of the variable in \code{cohort} for the time of event or
 censoring. A \code{string}. Note that if \code{ncc} is supplied, in order
