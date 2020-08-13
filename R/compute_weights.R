@@ -66,7 +66,7 @@ prep_km1 <- function(cohort, t_start_name = NULL, t_name, y_name, sample_stat,
   }
   in_ncc <- sample_stat > 0 & keep_stat == 1
   list(km_tb = km_tb, match_var_ncc = paste0("match_var=", match_var[in_ncc]), 
-       t_start = t_start, ncc_nodup = cohort[in_ncc, ])
+       t_start = t_start[in_ncc], ncc_nodup = cohort[in_ncc, ])
 }
 #' Assemble KM table and NCC data without duplicates when cohort data is not
 #' available
