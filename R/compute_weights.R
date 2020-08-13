@@ -357,6 +357,17 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, n_at_risk = NULL,
   }
   if (!is.null(cohort)) {
     # Full cohort is available
+    if (!is.null(t_start_name)) {
+      message(simpleMessage(sprintf(
+        "Start time is given by variable %s. Event/censoring time is given by variable %s.\n", 
+        t_start_name, t_name
+      )))
+    } else {
+      message(simpleMessage(sprintf(
+        "Start time is 0 for all subjects. Event/censoring time is given by variable %s.\n", 
+        t_name
+      )))
+    }
     obj <- prep_km1(cohort = cohort, t_start_name = t_start_name, t_name = t_name, 
                     y_name = y_name, sample_stat = sample_stat, 
                     match_var_names = match_var_names, n_per_case = n_per_case)
