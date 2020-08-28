@@ -7,6 +7,7 @@
 draw_mcc(
   cohort,
   y_name,
+  n_cases = NULL,
   n_per_case,
   match_var_names = NULL,
   weight_name = "ip_weight"
@@ -19,6 +20,9 @@ matrix with column names.}
 \item{y_name}{Name of the outcome variable in \code{cohort}. Cases are
 required to be indicated by integer \code{1}. It is recommended to code the 
 outcome variable as an integer vector, where 1=case and 0=non-case.}
+
+\item{n_cases}{Number of cases to draw. Default is \code{NULL}, in which case 
+all cases will be selected.}
 
 \item{n_per_case}{Number of controls to draw for each case.}
 

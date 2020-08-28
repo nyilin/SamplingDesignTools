@@ -278,6 +278,12 @@ prep_n_at_risk <- function(ncc, t_match_name, y_name, match_var_names = NULL,
 #' @param n_kept Number of sampled controls in each set that were kept in the
 #'   final NCC. When unspecified, the function assumes all subjects are kept in
 #'   the final NCC.
+#' @param attach_weight If \code{TRUE} (default), returns a \code{data.frame}
+#'   containing all the unique subjects selected in the NCC sample, with a
+#'   column for the KM-type weight associated with each subject. If \code{FALSE}, 
+#'   returns a \code{data.frame} containing the KM-type weight (with column name
+#'   \code{sampling_prob}) for controls that were available to be sampled up
+#'   until each event time. 
 #' @details When the full cohort is not available, in order to compute the
 #'   correct weights for each sampled control in the NCC sample, it is important
 #'   to keep the actual time of event or censoring of each subject in the NCC
@@ -341,7 +347,8 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, n_at_risk = NULL,
                                id_name = NULL, set_id_name = NULL,
                                sample_stat = NULL, keep_stat = NULL, 
                                match_var_names = NULL,
-                               n_per_case, n_kept = NULL) {
+                               n_per_case, n_kept = NULL, 
+                               attach_weight = TRUE) {
   if (is.null(y_name)) {
     stop(simpleError("Please sapply name of event status."))
   } else {
@@ -384,6 +391,21 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, n_at_risk = NULL,
                  (1 - prob_not_sampled0) * 
                  (choose(n = n_per_case - 1, k = n_kept) / 
                     choose(n = n_per_case, k = n_kept))) # selected, but not kept
+    }
+    if (!attach_weight) {
+      if (is.null(t_start_name)) {
+        km_tb <- km_tb %>%
+          ungroup() %>%
+          group_by(strata) %>% 
+          mutate(cumulative_product = cumprod(prob_not_sampled),
+                 sampling_prob = 1 - cumulative_product, 
+                 km_weight = 1 / sampling_prob) %>% 
+          as.data.frame(stringsAsFactors = FALSE)
+        return(km_tb)
+      } else {
+        warning(simpleWarning("No common KM-type weight associated with each event time when subjects do not share a common start time."))
+        return(NULL)
+      }
     }
     do.call("rbind", lapply(1:nrow(obj$ncc_nodup), function(j) {
       ncc_nodup_j <- obj$ncc_nodup[j, ]
@@ -449,6 +471,11 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, n_at_risk = NULL,
                     choose(n = n_per_case, k = n_kept)), # selected, but not kept
                cumulative_product = cumprod(prob_not_sampled2),
                sampling_prob = 1 - cumulative_product)
+    }
+    if (!attach_weight) {
+      km_tb <- km_tb %>% mutate(km_weight = 1 / sampling_prob) %>% 
+        as.data.frame(stringsAsFactors = FALSE)
+      return(km_tb)
     }
     p_ncc <- unlist(lapply(1:nrow(obj$ncc_nodup), function(j) {
       if (obj$ncc_nodup[j, y_name] == 1) {

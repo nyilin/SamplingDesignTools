@@ -19,7 +19,8 @@ compute_km_weights(
   keep_stat = NULL,
   match_var_names = NULL,
   n_per_case,
-  n_kept = NULL
+  n_kept = NULL,
+  attach_weight = TRUE
 )
 }
 \arguments{
@@ -84,6 +85,13 @@ must have the same name.}
 \item{n_kept}{Number of sampled controls in each set that were kept in the
 final NCC. When unspecified, the function assumes all subjects are kept in
 the final NCC.}
+
+\item{attach_weight}{If \code{TRUE} (default), returns a \code{data.frame}
+containing all the unique subjects selected in the NCC sample, with a
+column for the KM-type weight associated with each subject. If \code{FALSE}, 
+returns a \code{data.frame} containing the KM-type weight (with column name
+\code{sampling_prob}) for controls that were available to be sampled up
+until each event time.}
 }
 \description{
 Compute Kaplan-Meier type weights for (matched) NCC, possibly with dropped
