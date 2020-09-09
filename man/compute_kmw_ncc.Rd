@@ -16,7 +16,7 @@ compute_kmw_ncc(
   match_var_names = NULL,
   n_per_case,
   n_kept = n_per_case,
-  attach_weight = TRUE,
+  return_risk_table = FALSE,
   km_names = c(".km_prob", ".km_weight")
 )
 }
@@ -49,29 +49,31 @@ not coarsened.}
 \item{match_var_names}{Name(s) of the match variable(s) in
 \code{ncc_cases} used when drawing the NCC. A \code{string} vector.}
 
-\item{attach_weight}{Whether to return the unique subjects selected in the
-NCC with the appropriate KM-type probability and weight attached to each
-subject (when \code{attach_weight = TRUE}, the default), or to return a
-table of probabilities (and weights) associated with each unique event
-time. See Detail.}
+\item{n_per_case}{Number of controls matched to each case.}
+
+\item{n_kept}{Number of sampled controls in each set that were kept in the
+final NCC. Default is \code{n_per_case}.}
+
+\item{return_risk_table}{Whether the risk table should be returned. Default
+is \code{FALSE}.}
 
 \item{km_names}{Column names for the KM-type probability (the first element)
 and weight (the second element) computed, if these two columns are to be 
 attached to each subject in the input data. Default is
 \code{c(".km_prob", ".km_weight")}.}
 }
+\value{
+If \code{return_risk_table = FALSE} (the default), returns a
+  \code{data.frame} containing all the unique subjects selected in the NCC
+  sample, with a column for the KM-type weight associated with each subject.
+  If \code{return_risk_table = TRUE}, returns a list containing this
+  subcohort (\code{dat}) and the risk table (\code{risk_table}), which is a
+  \code{data.frame} containing the distinct (and exact) event time
+  (\code{t_event}), matching variables (if any), and the number of subject at
+  risk at each event time in each strata defined by matching variables
+  (\code{n_at_risk}).
+}
 \description{
 <Private function> Compute KM-type weight for NCC sample given information on 
 underlying cohort, possibly with dropped controls
-}
-\details{
-If \code{TRUE} (default), returns a \code{data.frame} containing all
-  the unique subjects selected in the NCC sample, with a column for the
-  KM-type weight associated with each subject. If \code{FALSE} and all
-  subjects started follow-up at time 0 (i.e., \code{t_start_name} is
-  \code{NULL}), returns a \code{data.frame} containing the KM-type
-  probabilities (\code{.km_prob}) and weights (\code{.km_weight}) for
-  controls that were available to be sampled up until each event time. If
-  \code{FALSE} and \code{t_start_name} is no \code{NULL}, returns the
-  probability of not being sampled at each event time.
 }

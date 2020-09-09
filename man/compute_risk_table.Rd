@@ -38,8 +38,6 @@ Returns a data.frame with the following columns:
   \item{t_event}{Unique event times in \code{cohort_skeleton}.}
   \item{n_event}{Number of events at each event time.}
   \item{n_at_risk}{Number of subjects at risk at each event time.}
-  \item{strata}{Strata defined by matching variables. \code{match_var=1} if the
-NCC is only time-matched.}
   \item{<each matching variable>}{If the NCC is matched on additional
 confounders, each matching variable will be included as a column to the right
 of \code{strata}.}

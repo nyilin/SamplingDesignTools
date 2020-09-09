@@ -4,12 +4,15 @@
 \alias{compute_risk_tb}
 \title{<Private function> Compute number at risk at each event time from cohort}
 \usage{
-compute_risk_tb(cohort, match_var_names)
+compute_risk_tb(cohort, match_var_names, staggered)
 }
 \arguments{
 \item{cohort}{Cohort data prepared by \code{\link{prepare_cohort}}.}
 
 \item{match_var_names}{Name(s) of the match variable(s).}
+
+\item{staggered}{Whether time is staggered (i.e., t_start is specified in
+input).}
 }
 \value{
 Returns a data.frame with the following columns:

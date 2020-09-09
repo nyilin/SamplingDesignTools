@@ -34,7 +34,7 @@ prepare_cohort <- function(cohort, t_start_name, t_name, y_name,
       "Start time is 0 for all subjects. Event/censoring time is given by variable %s.\n", 
       t_name
     )))
-    cohort$.t_start <- 0
+    cohort$.t_start <- -Inf # Not used in Surv()
   }
   if (!(t_name %in% names(cohort))) {
     stop(simpleError(paste(t_name, "not found in cohort.")))
@@ -89,6 +89,8 @@ prepare_ncc_cases <- function(ncc_cases, t_name, match_var_names) {
 #' <Private function> Compute number at risk at each event time from cohort
 #' @param cohort Cohort data prepared by \code{\link{prepare_cohort}}.
 #' @param match_var_names Name(s) of the match variable(s).
+#' @param staggered Whether time is staggered (i.e., t_start is specified in
+#'   input).
 #' @return Returns a data.frame with the following columns:
 #' \describe{
 #'   \item{t_event}{Unique event times in \code{cohort_skeleton}.}
@@ -102,9 +104,13 @@ prepare_ncc_cases <- function(ncc_cases, t_name, match_var_names) {
 #' }
 #' @import survival
 #' @import dplyr
-compute_risk_tb <- function(cohort, match_var_names) {
+compute_risk_tb <- function(cohort, match_var_names, staggered) {
   match_var <- cohort$.strata0
-  km <- survfit(Surv(.t_start, .t, .y) ~ match_var, data = cohort)
+  if (staggered) {
+    km <- survfit(Surv(.t_start, .t, .y) ~ match_var, data = cohort)
+  } else {
+    km <- survfit(Surv(.t, .y) ~ match_var, data = cohort)
+  }
   km_summ <- summary(km)
   if (is.null(km_summ$strata)) {
     risk_table <- data.frame(t_event = km_summ$time, n_event = km_summ$n.event, 
@@ -189,7 +195,7 @@ p_not_sampled <- function(n_event, n_at_risk, n_per_case, n_kept) {
 #' @import dplyr
 compute_kmw0 <- function(risk_table) {
   km_table <- risk_table %>%
-    filter(!is.na(p)) %>%
+    # filter(!is.na(p)) %>%
     group_by(strata) %>% 
     mutate(cumulative_product = cumprod(p),
            sampling_prob = 1 - cumulative_product, 
@@ -248,30 +254,26 @@ assign_kmw0 <- function(ncc_nodup, risk_table) {
 #' @param n_per_case Number of controls matched to each case.
 #' @param n_kept Number of sampled controls in each set that were kept in the
 #'   final NCC. Default is \code{n_per_case}.
-#' @param attach_weight Whether to return the subcohort of sampled subjects with
-#'   the appropriate KM-type probability and weight attached to each subject
-#'   (when \code{attach_weight = TRUE}, the default), or to return a table of
-#'   probabilities (and weights) associated with each unique event time. See
-#'   Detail.
+#' @param return_risk_table Whether the risk table should be returned. Default
+#'   is \code{FALSE}.
 #' @param km_names Column names for the KM-type probability (the first element)
 #'   and weight (the second element) computed, if these two columns are to be 
 #'   attached to each subject in the input data. Default is
 #'   \code{c(".km_prob", ".km_weight")}.
-#' @details If \code{TRUE} (default), returns a \code{data.frame} containing all
-#'   the unique subjects selected in the NCC sample, with a column for the
-#'   KM-type weight associated with each subject. If \code{FALSE} and all
-#'   subjects started follow-up at time 0 (i.e., \code{t_start_name} is
-#'   \code{NULL}), returns a \code{data.frame} containing the KM-type
-#'   probabilities (\code{.km_prob}) and weights (\code{.km_weight}) for
-#'   controls that were available to be sampled up until each event time. If
-#'   \code{FALSE} and \code{t_start_name} is no \code{NULL}, returns the
-#'   probability of not being sampled at each event time.
+#' @return If \code{return_risk_table = FALSE} (the default), returns the
+#'   subcohort of sampled subjects with the appropriate KM-type probability and
+#'   weight attached to each subject. If \code{return_risk_table = TRUE},
+#'   returns a list containing this subcohort (\code{dat}) and the risk table
+#'   (\code{risk_table}), which is a \code{data.frame} containing the distinct
+#'   event time (\code{t_event}), matching variables (if any), and the number of
+#'   subject at risk at each event time in each strata defined by matching
+#'   variables (\code{n_at_risk}).
 #' @import dplyr
 #' @import purrr
 compute_kmw_cohort <- function(cohort, t_start_name = NULL, t_name, sample_stat, 
                                match_var_names = NULL,
                                n_per_case, n_kept = n_per_case, 
-                               attach_weight = TRUE, 
+                               return_risk_table = FALSE, 
                                km_names = c(".km_prob", ".km_weight")) {
   cohort <- unique(as.data.frame(cohort))
   if (length(sample_stat) != nrow(cohort)) {
@@ -281,31 +283,23 @@ compute_kmw_cohort <- function(cohort, t_start_name = NULL, t_name, sample_stat,
   cohort <- prepare_cohort(cohort = cohort, t_start_name = t_start_name, 
                            t_name = t_name, y_name = ".y", 
                            match_var_names = match_var_names)
-  risk_table <- compute_risk_tb(cohort = cohort, match_var_names = match_var_names) %>% 
+  risk_table <- compute_risk_tb(cohort = cohort, match_var_names = match_var_names, 
+                                staggered = !is.null(t_start_name)) %>% 
     mutate(p = p_not_sampled(n_event = n_event, n_at_risk = n_at_risk, 
                              n_per_case = n_per_case, n_kept = n_kept))
-  if (!attach_weight) { 
-    # Return pre-computed km_weight in each interval of event time
-    if (is.null(t_start_name)) {
-      compute_kmw0(risk_table = risk_table)
-    } else {
-      # In case of staggered entry, it does not make sense to compute km_weight 
-      # without knowing the start and end time of each control
-      message(simpleMessage("Probability of not being sampled at each event time is returned for data with staggered entries."))
-      risk_table[, c("t_event", "strata", match_var_names, "p")] %>% 
-        arrange(strata, t_event) %>% 
-        as.data.frame(stringsAsFactors = FALSE)
-    }
-  } else {
-    # Assign km_weight to each subject
-    dat <- assign_kmw0(ncc_nodup = cohort[sample_stat > 0, ], 
-                       risk_table = risk_table)
-    change_km_names(dat = dat, km_names = km_names)
+  # Assign km_weight to each subject
+  dat <- assign_kmw0(ncc_nodup = cohort[sample_stat > 0, ], 
+                     risk_table = risk_table)
+  dat <- change_km_names(dat = dat, km_names = km_names)
+  if (return_risk_table) { 
+    # Return time of event and number of subject at risk at each event time
+    list(dat = dat, 
+         risk_table = risk_table[, c("t_event", match_var_names, "n_at_risk")])
+  } else { 
+    dat
   }
 }
-#' Compute probability of eligible controls not being sampled at each event time
-#' given NCC cases and information on underlying cohort, possibly with dropped
-#' controls
+#' Match number at risk at coarsened time to NCC cases
 #' @inheritParams prepare_ncc_cases
 #' @param risk_table_manual A \code{data.frame} with columns \code{t_event}
 #'   (unique event times, possibly coarsened), \code{n_at_risk} (number of
@@ -313,7 +307,7 @@ compute_kmw_cohort <- function(cohort, t_start_name = NULL, t_name, sample_stat,
 #'   additional columns for matching variables, if any. Make sure the matching
 #'   variables have the same column names as in \code{ncc_cases} and
 #'   \code{match_var_names}.
-#' @param t_coarse Name of the column of event time in each matched set in
+#' @param t_coarse_name Name of the column of event time in each matched set in
 #'   \code{ncc}, possibly coarsened to the same level as \code{t_event} in
 #'   \code{risk_table_manual}. A \code{string}. 
 #' @param t_name Name of the column of the exact event time. A \code{string}. 
@@ -330,9 +324,8 @@ compute_kmw_cohort <- function(cohort, t_start_name = NULL, t_name, sample_stat,
 #' }
 #' @import dplyr
 #' @export
-compute_p_not_sampled <- function(ncc_cases, risk_table_manual, t_coarse, t_name, 
-                                  match_var_names = NULL, 
-                                  n_per_case, n_kept = n_per_case) {
+match_risk_table <- function(ncc_cases, risk_table_manual, t_coarse_name, t_name, 
+                             match_var_names = NULL) {
   if (!is.null(match_var_names)) {
     if (!all(match_var_names %in% names(risk_table_manual))) {
       stop(simpleError("Make sure all match variables are in risk_table_manual."))
@@ -341,25 +334,23 @@ compute_p_not_sampled <- function(ncc_cases, risk_table_manual, t_coarse, t_name
   risk_table_manual <- risk_table_manual %>% rename(.t_event = t_event)
   vars <- c(".t_event", match_var_names)
   risk_table <- prepare_ncc_cases(ncc_cases = ncc_cases, 
-                                  t_name = t_coarse, 
+                                  t_name = t_coarse_name, 
                                   match_var_names = match_var_names) %>% 
     group_by(across({{vars}})) %>% 
     summarise(n_event = n(), strata = unique(.strata)) %>%
+    ungroup() %>%
     left_join(risk_table_manual) %>% 
-    mutate(p = p_not_sampled(n_event = n_event, n_at_risk = n_at_risk, 
-                             n_per_case = n_per_case, n_kept = n_kept)) %>% 
     rename(t_coarse = .t_event)
-  risk_table[, c("t_coarse", "n_event", "n_at_risk", "strata", match_var_names, "p")] %>% 
-    left_join(unique(data.frame(t_coarse = ncc_cases[, t_coarse], 
+  risk_table[, c("t_coarse", "n_event", "n_at_risk", "strata", match_var_names)] %>% 
+    left_join(unique(data.frame(t_coarse = ncc_cases[, t_coarse_name], 
                                 t_event = ncc_cases[, t_name])), 
               by = "t_coarse") %>% 
-    select(-t_coarse) %>%
     arrange(strata, t_event) %>% 
     as.data.frame(stringsAsFactors = FALSE)
 }
 #' <Private function> Compute KM-type weight for NCC sample given information on 
 #' underlying cohort, possibly with dropped controls
-#' @inheritParams compute_p_not_sampled
+#' @inheritParams match_risk_table
 #' @param ncc NCC data. A \code{data.frame} or a matrix with column names. This
 #'   data should not include the ID of each matched set, but should include the
 #'   actual event/censoring time of each subject.
@@ -373,30 +364,30 @@ compute_p_not_sampled <- function(ncc_cases, risk_table_manual, t_coarse, t_name
 #'   not coarsened.
 #' @param y_name Name of the column of censoring status in each matched set in
 #'   \code{ncc}, with 1 for event and 0 for censoring. A \code{string}.
-#' @param attach_weight Whether to return the unique subjects selected in the
-#'   NCC with the appropriate KM-type probability and weight attached to each
-#'   subject (when \code{attach_weight = TRUE}, the default), or to return a
-#'   table of probabilities (and weights) associated with each unique event
-#'   time. See Detail.
+#' @param n_per_case Number of controls matched to each case.
+#' @param n_kept Number of sampled controls in each set that were kept in the
+#'   final NCC. Default is \code{n_per_case}.
+#' @param return_risk_table Whether the risk table should be returned. Default
+#'   is \code{FALSE}.
 #' @param km_names Column names for the KM-type probability (the first element)
 #'   and weight (the second element) computed, if these two columns are to be 
 #'   attached to each subject in the input data. Default is
 #'   \code{c(".km_prob", ".km_weight")}.
-#' @details If \code{TRUE} (default), returns a \code{data.frame} containing all
-#'   the unique subjects selected in the NCC sample, with a column for the
-#'   KM-type weight associated with each subject. If \code{FALSE} and all
-#'   subjects started follow-up at time 0 (i.e., \code{t_start_name} is
-#'   \code{NULL}), returns a \code{data.frame} containing the KM-type
-#'   probabilities (\code{.km_prob}) and weights (\code{.km_weight}) for
-#'   controls that were available to be sampled up until each event time. If
-#'   \code{FALSE} and \code{t_start_name} is no \code{NULL}, returns the
-#'   probability of not being sampled at each event time.
+#' @return If \code{return_risk_table = FALSE} (the default), returns a
+#'   \code{data.frame} containing all the unique subjects selected in the NCC
+#'   sample, with a column for the KM-type weight associated with each subject.
+#'   If \code{return_risk_table = TRUE}, returns a list containing this
+#'   subcohort (\code{dat}) and the risk table (\code{risk_table}), which is a
+#'   \code{data.frame} containing the distinct (and exact) event time
+#'   (\code{t_event}), matching variables (if any), and the number of subject at
+#'   risk at each event time in each strata defined by matching variables
+#'   (\code{n_at_risk}).
 #' @import dplyr
 compute_kmw_ncc <- function(ncc, id_name = NULL, risk_table_manual, 
                             t_start_name = NULL, t_name, t_match_name = t_name, 
                             y_name, match_var_names = NULL,
                             n_per_case, n_kept = n_per_case, 
-                            attach_weight = TRUE, 
+                            return_risk_table = FALSE, 
                             km_names = c(".km_prob", ".km_weight")) {
   ncc <- unique(as.data.frame(ncc))
   if (!(y_name %in% names(ncc))) {
@@ -404,57 +395,51 @@ compute_kmw_ncc <- function(ncc, id_name = NULL, risk_table_manual,
   } else {
     y_name <- y_name[1]
   }
-  if (!(y_name %in% names(ncc))) {
-    stop(simpleError(paste(y_name, "not found in ncc.")))
-  } else {
-    y_name <- y_name[1]
-  }
   ncc_cases <- unique(ncc[ncc[, y_name] == 1, ])
-  prob_table <- compute_p_not_sampled(
-    ncc_cases = ncc_cases, risk_table_manual = risk_table_manual, 
-    t_coarse = t_match_name, t_name = t_name, match_var_names = match_var_names, 
-    n_per_case = n_per_case, n_kept = n_kept
-  )
-  if (!attach_weight) {
-    if (is.null(t_start_name)) {
-      compute_kmw0(risk_table = prob_table)
-    } else {
-      prob_table
-    }
+  risk_table <- match_risk_table(ncc_cases = ncc_cases, 
+                                 risk_table_manual = risk_table_manual,
+                                 t_coarse_name = t_match_name, t_name = t_name, 
+                                 match_var_names = match_var_names) %>% 
+    mutate(p = p_not_sampled(n_event = n_event, n_at_risk = n_at_risk, 
+                             n_per_case = n_per_case, n_kept = n_kept))
+  ncc_cases <- ncc_cases[, -which(names(ncc_cases) == t_match_name)] 
+  if (sum(ncc[, y_name] != 1) == 0) {
+    dat <- ncc_cases %>% mutate(.km_prob = 1, .km_weight = 1 / .km_prob) %>% 
+      change_km_names(km_names = km_names) %>%
+      as.data.frame(stringsAsFactors = FALSE)
   } else {
-    ncc_cases <- ncc_cases[, -which(names(ncc_cases) == t_match_name)] 
-    if (sum(ncc[, y_name] != 1) == 0) {
-      ncc_cases %>% mutate(.km_prob = 1, .km_weight = 1 / .km_prob) %>% 
-        change_km_names(km_names = km_names) %>%
-        as.data.frame(stringsAsFactors = FALSE)
-    } else {
-      if (is.null(id_name)) {
-        stop(simpleError("Cannot attach weight to each subject if subject id is unknown."))
-      } else if (!(id_name %in% names(ncc))) {
-        stop(simpleError(paste(id_name, "not found in ncc.")))
-      }
-      if (is.null(t_name)) {
-        stop(simpleError("Cannot attach weight to each subject if the event/censoring time is unknown."))
-      } else if (!(t_name %in% names(ncc))) {
-        stop(simpleError(paste(t_name, "not found in ncc.")))
-      }
-      if (!is.null(t_start_name)) {
-        if (!(t_start_name %in% names(ncc))) {
-          stop(simpleError(paste(t_start_name, "not found in ncc.")))
-        }
-      }
-      id_cases <- unique(ncc_cases[, id_name])
-      id_controls <- setdiff(ncc[ncc[, y_name] != 1, id_name], id_cases)
-      ncc_controls <- unique(ncc[ncc[, id_name] %in% id_controls, 
-                                 -which(names(ncc) == t_match_name)])
-      ncc_nodup <- rbind(ncc_cases, ncc_controls)
-      ncc_nodup[sort.list(ncc_nodup[, id_name]), ] %>% 
-        prepare_cohort(cohort = ., t_start_name = t_start_name, t_name = t_name, 
-                       y_name = y_name, match_var_names = match_var_names) %>% 
-        assign_kmw0(ncc_nodup = ., risk_table = prob_table) %>% 
-        change_km_names(km_names = km_names) %>%
-        as.data.frame(stringsAsFactors = FALSE)
+    if (is.null(id_name)) {
+      stop(simpleError("Cannot attach weight to each subject if subject id is unknown."))
+    } else if (!(id_name %in% names(ncc))) {
+      stop(simpleError(paste(id_name, "not found in ncc.")))
     }
+    if (is.null(t_name)) {
+      stop(simpleError("Cannot attach weight to each subject if the event/censoring time is unknown."))
+    } else if (!(t_name %in% names(ncc))) {
+      stop(simpleError(paste(t_name, "not found in ncc.")))
+    }
+    if (!is.null(t_start_name)) {
+      if (!(t_start_name %in% names(ncc))) {
+        stop(simpleError(paste(t_start_name, "not found in ncc.")))
+      }
+    }
+    id_cases <- unique(ncc_cases[, id_name])
+    id_controls <- setdiff(ncc[ncc[, y_name] != 1, id_name], id_cases)
+    ncc_controls <- unique(ncc[ncc[, id_name] %in% id_controls, 
+                               -which(names(ncc) == t_match_name)])
+    dat <- rbind(ncc_cases, ncc_controls)
+    dat <- dat[sort.list(dat[, id_name]), ] %>% 
+      prepare_cohort(cohort = ., t_start_name = t_start_name, t_name = t_name, 
+                     y_name = y_name, match_var_names = match_var_names) %>% 
+      assign_kmw0(ncc_nodup = ., risk_table = risk_table) %>% 
+      change_km_names(km_names = km_names) %>%
+      as.data.frame(stringsAsFactors = FALSE)
+  }
+  if (return_risk_table) {
+    list(dat = dat, 
+         risk_table = risk_table[, c("t_event", match_var_names, "n_at_risk")])
+  } else {
+    dat
   }
 }
 #' Prepare a template risk table given a nested case-control sample
@@ -529,8 +514,6 @@ prepare_risk_table <- function(ncc, t_match_name, y_name, match_var_names = NULL
 #'   \item{t_event}{Unique event times in \code{cohort_skeleton}.}
 #'   \item{n_event}{Number of events at each event time.}
 #'   \item{n_at_risk}{Number of subjects at risk at each event time.}
-#'   \item{strata}{Strata defined by matching variables. \code{match_var=1} if the
-#' NCC is only time-matched.}
 #'   \item{<each matching variable>}{If the NCC is matched on additional
 #' confounders, each matching variable will be included as a column to the right
 #' of \code{strata}.}
@@ -541,7 +524,10 @@ compute_risk_table <- function(cohort, t_start_name = NULL, t_name, y_name,
   cohort <- prepare_cohort(cohort = cohort, t_start_name = t_start_name, 
                            t_name = t_name, y_name = y_name, 
                            match_var_names = match_var_names)
-  compute_risk_tb(cohort = cohort, match_var_names = match_var_names)
+  compute_risk_tb(cohort = cohort, match_var_names = match_var_names, 
+                  staggered = !is.null(t_start_name)) %>% 
+    select(-strata) %>% 
+    as.data.frame(stringsAsFactors = FALSE)
 }
 #' <private function> Change variable names corresponding to KM-type probability
 #' and weight
@@ -649,7 +635,7 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, id_name = NULL,
                                t_match_name = t_name, y_name = NULL, 
                                match_var_names = NULL,
                                n_per_case, n_kept = n_per_case, 
-                               attach_weight = TRUE, 
+                               return_risk_table = FALSE, 
                                km_names = c("km_prob", "km_weight")) {
   if (!is.null(cohort)) {
     if (is.null(sample_stat)) {
@@ -662,7 +648,8 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, id_name = NULL,
                        sample_stat = sample_stat, 
                        match_var_names = match_var_names, 
                        n_per_case = n_per_case, n_kept = n_kept, 
-                       attach_weight = attach_weight, km_names = km_names)
+                       return_risk_table = return_risk_table, 
+                       km_names = km_names)
   } else {
     # Full cohort is not available
     if (is.null(risk_table_manual)) {
@@ -674,15 +661,16 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, id_name = NULL,
                     t_match_name = t_match_name, y_name = y_name, 
                     match_var_names = match_var_names, 
                     n_per_case = n_per_case, n_kept = n_kept, 
-                    attach_weight = attach_weight, km_names = km_names)
+                    return_risk_table = return_risk_table, 
+                    km_names = km_names)
   }
 }
 #' Compute Kaplan-Meier type weights for newly collected NCC controls
 #' @param ncc_controls Newly collected NCC controls, where each row corresponds
 #'   to a unique subject. This data should include the actual event/censoring
 #'   time of each subject. A \code{data.frame} or a matrix with column names.
-#' @param prob_table_manual Probability of not being sampled at each event time,
-#'   computed using function \code{\link{compute_p_not_sampled}}.
+#' @param risk_table_manual Number of subjects at risk at time of each cases in
+#'   the NCC, prepared using function \code{\link{match_risk_table}}.
 #' @param t_start_name Name of the variable in \code{ncc_controls} for the start
 #'   time of follow-up. A \code{string}. Default is \code{NULL}, i.e., every
 #'   subject started the follow-up at time 0.
@@ -697,17 +685,20 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, id_name = NULL,
 #'   \code{c("km_prob", "km_weight")}.
 #' @import dplyr
 #' @export
-#' @seealso \code{\link{compute_p_not_sampled}}
-compute_km_weights_controls <- function(ncc_controls, prob_table_manual, 
+#' @seealso \code{\link{match_risk_table}}
+compute_km_weights_controls <- function(ncc_controls, risk_table_manual, 
                                         t_start_name = NULL, t_name, 
-                                        match_var_names = NULL, 
+                                        match_var_names = NULL, n_per_case,
                                         km_names = c("km_prob", "km_weight")) {
   ncc_controls <- as.data.frame(ncc_controls, stringsAsFactors = FALSE)
   ncc_controls$.y <- 0
+  risk_table <- risk_table_manual %>% 
+    mutate(p = p_not_sampled(n_event = n_event, n_at_risk = n_at_risk, 
+                             n_per_case = n_per_case, n_kept = n_per_case))
   ncc_controls %>% 
     prepare_cohort(cohort = ., t_start_name = t_start_name, t_name = t_name, 
                    y_name = ".y", match_var_names = match_var_names) %>%
-    assign_kmw0(ncc_nodup = ., risk_table = prob_table_manual) %>% 
+    assign_kmw0(ncc_nodup = ., risk_table = risk_table) %>% 
     change_km_names(km_names = km_names) %>%
     as.data.frame(stringsAsFactors = FALSE)
 }

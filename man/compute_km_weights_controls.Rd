@@ -6,10 +6,11 @@
 \usage{
 compute_km_weights_controls(
   ncc_controls,
-  prob_table_manual,
+  risk_table_manual,
   t_start_name = NULL,
   t_name,
   match_var_names = NULL,
+  n_per_case,
   km_names = c("km_prob", "km_weight")
 )
 }
@@ -18,8 +19,8 @@ compute_km_weights_controls(
 to a unique subject. This data should include the actual event/censoring
 time of each subject. A \code{data.frame} or a matrix with column names.}
 
-\item{prob_table_manual}{Probability of not being sampled at each event time,
-computed using function \code{\link{compute_p_not_sampled}}.}
+\item{risk_table_manual}{Number of subjects at risk at time of each cases in
+the NCC, prepared using function \code{\link{match_risk_table}}.}
 
 \item{t_start_name}{Name of the variable in \code{ncc_controls} for the start
 time of follow-up. A \code{string}. Default is \code{NULL}, i.e., every
@@ -41,5 +42,5 @@ and weight (the second element) computed. Default is
 Compute Kaplan-Meier type weights for newly collected NCC controls
 }
 \seealso{
-\code{\link{compute_p_not_sampled}}
+\code{\link{match_risk_table}}
 }

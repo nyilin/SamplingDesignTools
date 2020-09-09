@@ -2,10 +2,10 @@
 
 export(compute_km_weights)
 export(compute_km_weights_controls)
-export(compute_p_not_sampled)
 export(compute_risk_table)
 export(draw_mcc)
 export(draw_ncc_cm)
+export(match_risk_table)
 export(prepare_risk_table)
 import(dplyr)
 import(purrr)

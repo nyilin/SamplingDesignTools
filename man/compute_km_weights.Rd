@@ -18,7 +18,7 @@ compute_km_weights(
   match_var_names = NULL,
   n_per_case,
   n_kept = n_per_case,
-  attach_weight = TRUE,
+  return_risk_table = FALSE,
   km_names = c("km_prob", "km_weight")
 )
 }
@@ -71,11 +71,8 @@ in \code{risk_table_manual} must have the same name.}
 \item{n_kept}{Number of sampled controls in each set that were kept in the
 final NCC. Default is \code{n_per_case}.}
 
-\item{attach_weight}{Whether to return the subcohort of sampled subjects with
-the appropriate KM-type probability and weight attached to each subject
-(when \code{attach_weight = TRUE}, the default), or to return a table of
-probabilities (and weights) associated with each unique event time. See
-Detail.}
+\item{return_risk_table}{Whether the risk table should be returned. Default
+is \code{FALSE}.}
 
 \item{km_names}{Column names for the KM-type probability (the first element)
 and weight (the second element) computed, if these two columns are to be 
