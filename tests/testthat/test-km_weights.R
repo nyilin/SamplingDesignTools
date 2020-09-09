@@ -35,7 +35,8 @@ test_that("compute_risk_table: no matching", {
     cohort = cohort, t_start_name = NULL, t_name = "t2", y_name = "status", 
     match_var_names = NULL
   ) %>% 
-    SamplingDesignTools:::compute_risk_tb(cohort = ., match_var_names = NULL)
+    SamplingDesignTools:::compute_risk_tb(cohort = ., match_var_names = NULL, 
+                                          staggered = FALSE)
   expect_equal(tb_manual$n + 1, tb$n_at_risk)
 })
 test_that("compute_risk_table: matching on a", {
@@ -46,7 +47,8 @@ test_that("compute_risk_table: matching on a", {
     cohort = cohort, t_start_name = NULL, t_name = "t2", y_name = "status", 
     match_var_names = "a"
   ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., 
-                                                 match_var_names = "a") %>% 
+                                              match_var_names = "a", 
+                                              staggered = FALSE) %>% 
     arrange(t_event)
   expect_equal(tb_manual$n + 1, tb$n_at_risk)
   expect_equal(tb_manual$a, tb$a)
@@ -59,7 +61,9 @@ test_that("compute_risk_table: matching on a&b", {
   tb <- SamplingDesignTools:::prepare_cohort(
     cohort = cohort, t_start_name = NULL, t_name = "t2", y_name = "status", 
     match_var_names = c("a", "b")
-  ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., match_var_names = c("a", "b")) %>% 
+  ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., 
+                                              match_var_names = c("a", "b"), 
+                                              staggered = FALSE) %>% 
     arrange(t_event)
   expect_equal(tb_manual$n + 1, tb$n_at_risk)
   expect_equal(tb_manual$a, tb$a)
@@ -102,7 +106,8 @@ test_that("km_weight: no matching", {
   tb <- SamplingDesignTools:::prepare_cohort(
     cohort = cohort, t_start_name = NULL, t_name = "t2", y_name = "status", 
     match_var_names = NULL
-  ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., match_var_names = NULL) %>% 
+  ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., match_var_names = NULL, 
+                                              staggered = FALSE) %>% 
     mutate(p = SamplingDesignTools:::p_not_sampled(n_event = n_event, 
                                                    n_at_risk = n_at_risk, 
                                                    n_per_case = 1, 
@@ -119,7 +124,9 @@ test_that("km_weight: matched on a&b", {
   tb <- SamplingDesignTools:::prepare_cohort(
     cohort = cohort, t_start_name = NULL, t_name = "t2", y_name = "status", 
     match_var_names = c("a", "b")
-  ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., match_var_names = c("a", "b")) %>% 
+  ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., 
+                                              match_var_names = c("a", "b"), 
+                                              staggered = FALSE) %>% 
     mutate(p = SamplingDesignTools:::p_not_sampled(n_event = n_event, 
                                                    n_at_risk = n_at_risk, 
                                                    n_per_case = 1, 
@@ -198,7 +205,8 @@ test_that("compute_risk_table: no matching, staggered entry", {
     cohort = cohort, t_start_name = "t1", t_name = "t2", y_name = "status", 
     match_var_names = NULL
   ) %>% 
-    SamplingDesignTools:::compute_risk_tb(cohort = ., match_var_names = NULL)
+    SamplingDesignTools:::compute_risk_tb(cohort = ., match_var_names = NULL, 
+                                          staggered = TRUE)
   expect_equal(tb_manual$n + 1, tb$n_at_risk)
 })
 test_that("compute_risk_table: matching on a&b, staggered entry", {
@@ -210,7 +218,8 @@ test_that("compute_risk_table: matching on a&b, staggered entry", {
     cohort = cohort, t_start_name = "t1", t_name = "t2", y_name = "status", 
     match_var_names = c("a", "b")
   ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., 
-                                              match_var_names = c("a", "b")) %>% 
+                                              match_var_names = c("a", "b"), 
+                                              staggered = TRUE) %>% 
     arrange(t_event)
   expect_equal(tb_manual$n + 1, tb$n_at_risk)
   expect_equal(tb_manual$a, tb$a)
@@ -270,7 +279,7 @@ test_that("prepare_ncc_cases: no matching", {
   expect_identical(ncc_cases$t, ncc_cases$.t_event)
 })
 
-test_that("compute_kmw_cases: no matching", {
+test_that("match_risk_table: no matching", {
   ncc <- data.frame(set = rep(1:6, each = 2), 
                     id = c(1, 3, 7, 10, 4, 8, 6, 10, 10, 2, 9, 2), 
                     t = rep(c(2, 4, 5, 7, 8, 9), each = 2),
@@ -279,14 +288,39 @@ test_that("compute_kmw_cases: no matching", {
     left_join(cohort) %>% 
     arrange(set, status)
   risk_table_manual <- data.frame(t_event = c(2, 4, 5, 7, 8, 9), 
-                                  n_at_risk = c(3, 6, 4, 4, 3, 1), 
+                                  n_at_risk = c(3, 6, 4, 4, 3, 1) + 1, 
                                   s = 1)
   risk_table <- ncc %>% filter(fail == 1) %>% 
-    SamplingDesignTools:::compute_p_not_sampled(
-      ncc_cases = ., risk_table_manual = risk_table_manual, t_coarse = "t", 
-      t_name = "t", n_per_case = 1, match_var_names = "s"
+    SamplingDesignTools::match_risk_table(
+      ncc_cases = ., risk_table_manual = risk_table_manual, t_coarse_name = "t", 
+      t_name = "t", match_var_names = "s"
     )
-  expect("s" %in% names(risk_table))
+  expect_true("s" %in% names(risk_table))
+  expect_equal(risk_table$n_at_risk, risk_table_manual$n_at_risk)
+})
+test_that("match_risk_table: matched on a&b, staggered entry", {
+  ncc <- data.frame(set_id = rep(1:3, each = 2), 
+                    id = c(1, 3, 
+                           7, 5, 
+                           10, 2), 
+                    t = rep(c(2, 4, 8), each = 2), 
+                    y = rep(c(1, 0), 3)) %>% 
+    left_join(cohort) %>% 
+    arrange(set_id, status)
+  risk_table_manual <- SamplingDesignTools:::prepare_cohort(
+    cohort = cohort, t_start_name = "t1", t_name = "t2", y_name = "status", 
+    match_var_names = c("a", "b")
+  ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., 
+                                              match_var_names = c("a", "b"), 
+                                              staggered = TRUE) %>% 
+    filter(t_event %in% ncc$t) %>% 
+    select(t_event, n_at_risk, a, b)
+  risk_table <- ncc %>% filter(y == 1) %>% 
+    SamplingDesignTools::match_risk_table(
+      ncc_cases = ., risk_table_manual = risk_table_manual, t_coarse_name = "t", 
+      t_name = "t", match_var_names = c("a", "b")
+    )
+  expect_equal(risk_table$n_at_risk, risk_table_manual$n_at_risk)
 })
 test_that("attach km_weight to ncc controls: no matching", {
   ncc <- data.frame(set = rep(1:6, each = 2), 
@@ -298,10 +332,13 @@ test_that("attach km_weight to ncc controls: no matching", {
   risk_table_manual <- data.frame(t_event = c(2, 4, 5, 7, 8, 9), 
                                   n_at_risk = c(3, 6, 4, 4, 3, 1) + 1)
   risk_table <- ncc %>% filter(fail == 1) %>% 
-    SamplingDesignTools:::compute_p_not_sampled(
-      ncc_cases = ., risk_table_manual = risk_table_manual, t_coarse = "t", 
-      t_name = "t", n_per_case = 1, match_var_names = NULL
-    )
+    SamplingDesignTools::match_risk_table(
+      ncc_cases = ., risk_table_manual = risk_table_manual, t_coarse_name = "t", 
+      t_name = "t", match_var_names = NULL
+    ) %>% 
+    mutate(p = SamplingDesignTools:::p_not_sampled(
+      n_event = n_event, n_at_risk = n_at_risk, n_per_case = 1, n_kept = 1
+    ))
   ncc_controls <- cohort %>% 
     filter(id %in% setdiff(ncc$id[ncc$fail == 0], ncc$id[ncc$fail == 1])) %>% 
     SamplingDesignTools:::prepare_cohort(
@@ -350,7 +387,8 @@ test_that("compute km_weight given ncc: matched on a&b, staggered entry", {
     cohort = cohort, t_start_name = "t1", t_name = "t2", y_name = "status", 
     match_var_names = c("a", "b")
   ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., 
-                                              match_var_names = c("a", "b")) %>% 
+                                              match_var_names = c("a", "b"), 
+                                              staggered = TRUE) %>% 
     filter(t_event %in% ncc$t) %>% 
     select(t_event, n_at_risk, a, b)
   ncc_nodup <- SamplingDesignTools:::compute_kmw_ncc(
@@ -376,7 +414,8 @@ test_that("compute km_weight given ncc: matched on a&b, staggered entry, cases o
     cohort = cohort, t_start_name = "t1", t_name = "t2", y_name = "status", 
     match_var_names = c("a", "b")
   ) %>% SamplingDesignTools:::compute_risk_tb(cohort = ., 
-                                              match_var_names = c("a", "b")) %>% 
+                                              match_var_names = c("a", "b"), 
+                                              staggered = TRUE) %>% 
     filter(t_event %in% ncc$t) %>% 
     select(t_event, n_at_risk, a, b)
   ncc_nodup <- SamplingDesignTools:::compute_kmw_ncc(
@@ -408,46 +447,70 @@ test_that("prepare_risk_table", {
 sample_stat <- numeric(nrow(cohort_2))
 sample_stat[unique(ncc_2$Map[ncc_2$Fail == 0])] <- 1
 sample_stat[ncc_2$Map[ncc_2$Fail == 1]] <- 2
-km_table <- SamplingDesignTools::compute_km_weights(
+output <- SamplingDesignTools::compute_km_weights(
   cohort = cohort_2, t_name = "t", sample_stat = sample_stat, 
   match_var_names = c("age_cat", "gender"), n_per_case = 5, 
-  attach_weight = FALSE
+  return_risk_table = TRUE
 )
 risk_table <- SamplingDesignTools::compute_risk_table(
   cohort = cohort_2, t_name = "t", y_name = "y",
   match_var_names = c("age_cat", "gender")
 )
-km_table2 <- ncc_2 %>% select(-Set) %>% 
+test_that("compute_km_weights: cohort, check risk_table", {
+  expect_equal(output$risk_table$t_event, risk_table$t_event)
+  expect_equal(output$risk_table$n_at_risk, risk_table$n_at_risk)
+})
+output2 <- ncc_2 %>% select(-Set) %>% 
   SamplingDesignTools::compute_km_weights(
     ncc = ., risk_table_manual = risk_table, 
-    id_name = "Map", t_start_name = "Time", t_name = "t", y_name = "Fail", 
+    id_name = "Map", t_match_name = "Time", t_name = "t", y_name = "Fail", 
     match_var_names = c("age_cat", "gender"), n_per_case = 5, 
-    attach_weight = FALSE
+    return_risk_table = TRUE
   ) 
-prob_table <- ncc_2 %>% filter(Fail == 1) %>% select(-Set) %>% 
-  SamplingDesignTools::compute_p_not_sampled(
+test_that("compute_km_weights: ncc, check risk_table", {
+  expect_equal(output2$risk_table$t_event, risk_table$t_event)
+  expect_equal(output2$risk_table$n_at_risk, risk_table$n_at_risk)
+})
+km_table_ncc <- ncc_2 %>% filter(Fail == 1) %>% select(-Set) %>% 
+  SamplingDesignTools::match_risk_table(
     ncc_cases = ., risk_table_manual = risk_table, 
-    t_coarse = "Time", t_name = "Time",
-    match_var_names = c("age_cat", "gender"), n_per_case = 5
-  )
-km_table3 <- SamplingDesignTools:::compute_kmw0(risk_table = prob_table)
+    t_coarse_name = "Time", t_name = "Time",
+    match_var_names = c("age_cat", "gender")
+  ) %>% 
+  mutate(p = SamplingDesignTools:::p_not_sampled(
+    n_event = n_event, n_at_risk = n_at_risk, n_per_case = 5, n_kept = 5
+  )) %>% 
+  SamplingDesignTools:::compute_kmw0(risk_table = .)
+test_that("match_risk_table", {
+  expect_equal(km_table_ncc$t_event, risk_table$t_event)
+})
 
-km_table4 <- ncc_2 %>% filter(Fail == 1) %>% select(-Set) %>% 
+output4 <- ncc_2 %>% filter(Fail == 1) %>% select(-Set) %>% 
   SamplingDesignTools::compute_km_weights(
     ncc = ., risk_table_manual = risk_table, 
     id_name = "Map", t_name = "t", y_name = "Fail", 
     match_var_names = c("age_cat", "gender"), n_per_case = 5, 
-    attach_weight = FALSE
+    return_risk_table = TRUE
   ) 
+test_that("compute_km_weights: ncc cases, check risk_table", {
+  expect_equal(output4$risk_table$t_event, risk_table$t_event)
+  expect_equal(output4$risk_table$n_at_risk, risk_table$n_at_risk)
+})
 
 test_that("km_weights", {
-  expect_equal(km_table$t_event, km_table2$t_event)
-  expect_equal(km_table2$t_event, km_table2$t_coarse)
-  expect_equal(km_table$km_weight, km_table2$km_weight)
-  expect_equal(km_table$t_event, km_table3$t_event)
-  expect_equal(km_table3$t_event, km_table3$t_coarse)
-  expect_equal(km_table$km_weight, km_table3$km_weight)
-  expect_equal(km_table$t_event, km_table4$t_event)
-  expect_equal(km_table4$t_event, km_table4$t_coarse)
-  expect_equal(km_table$km_weight, km_table4$km_weight)
+  expect_equal(output$dat$km_weight, output2$dat$km_weight)
+  expect_true(all(output$dat$km_weight[output$dat$y == 0] %in% 
+                    km_table_ncc$km_weight))
 })
+
+# ncc_nodup <- compute_km_weights(cohort = cohort_2, t_name = "t", y_name = "y",
+#                                 match_var_names = c("age_cat", "gender"),
+#                                 sample_stat = sample_stat, n_per_case = 5)
+# risk_table <- compute_risk_table(cohort = cohort_2, t_name = "t", y_name = "y",
+#                                  match_var_names = c("age_cat", "gender"))
+# ncc_nodup_v2 <- compute_km_weights(ncc = ncc_2[, -1], risk_table_manual = risk_table,
+#                                    id_name = "Map", t_match_name = "Time",
+#                                    t_name = "t", y_name = "Fail",
+#                                    match_var_names = c("age_cat", "gender"),
+#                                    n_per_case = 5)
+# all.equal(ncc_nodup$km_weight, ncc_nodup_v2$km_weight)

@@ -185,9 +185,10 @@ i_kept <- rep(i_case, each = n_kept + 1) + rep(0:n_kept, length(i_case))
 ncc_2_drop3 <- ncc_2[i_kept, ]
 keep_stat <- numeric(nrow(cohort_2))
 keep_stat[ncc_2_drop3$Map] <- 1
+sample_stat_drop3 <- ifelse(keep_stat == 1, sample_stat, 0)
 table(sample_stat, keep_stat)
 ncc_2_nodup_drop3 <- compute_km_weights(cohort = cohort_2, t_name = "t", y_name = "y",
-                                        sample_stat = sample_stat, keep_stat = keep_stat,
+                                        sample_stat = sample_stat_drop3, 
                                         match_var_names = c("age_cat", "gender"), 
                                         n_per_case = n_per_case, n_kept = n_kept)
 head(ncc_2_nodup_drop3, 12)
@@ -256,27 +257,21 @@ coarsened time to compute the number at risk:
 ncc_2$t <- cohort_2$t[ncc_2$Map]
 ncc_2$t_yr <- ceiling(ncc_2$t)
 cohort_2$t_yr <- ceiling(cohort_2$t)
-km <- survfit(Surv(t_yr, y) ~ strata(gender, age_cat), data = cohort_2)
-km_summ <- summary(km)
-n_at_risk <- data.frame(strata = as.character(km_summ$strata), 
-                        t_yr = km_summ$time, 
-                        n.risk = km_summ$n.risk, stringsAsFactors = FALSE)
-n_at_risk <- cbind(n_at_risk[, -1], do.call("rbind", lapply(n_at_risk$strata, function(s) {
-  s_vec <- unlist(strsplit(s, split = "="))
-  gender <- as.numeric(unlist(strsplit(s_vec[3], split = ","))[1])
-  data.frame(gender = gender, age_cat = trimws(s_vec[4]), stringsAsFactors = FALSE)
-})))
-head(n_at_risk)
+risk_table_coarse <- compute_risk_table(cohort = cohort_2, t_name = "t_yr", 
+                                        y_name = "y", 
+                                        match_var_names = c("age_cat", "gender"))
+head(risk_table_coarse)
 ```
 
 Now I use this information to compute the KM-type weights and subsequently fit
 the weighted Cox model:
 
 ```{r}
-ncc_nodup2 <- compute_km_weights(ncc = ncc_2, n_at_risk = n_at_risk, 
+ncc_nodup2 <- compute_km_weights(ncc = ncc_2[, -1], 
+                                 risk_table_manual = risk_table_coarse, 
                                  t_name = "t", y_name = "Fail", 
                                  t_match_name = "t_yr",
-                                 id_name = "Map", set_id_name = "Set", 
+                                 id_name = "Map", 
                                  match_var_names = c("age_cat", "gender"), 
                                  n_per_case = 5)
 m_cox_ncc_2_v2 <- coxph(Surv(t, Fail) ~ x * z + age + gender, 
@@ -309,13 +304,14 @@ obtained in this section.
 
 In reality, number at risk at each event time may be approximated by, e.g., size
 of the relevant sub-population at mid-year. In such case, user may use the 
-following function to generate a template for `n_at_risk` to fill in:
+following function to generate a template for `risk_table_coarse` to fill in:
 
 ```{r}
-n_at_risk <- prep_n_at_risk(ncc = ncc_2, t_match_name = "t_yr", y_name = "Fail", 
-                            match_var_names = c("gender", "age_cat"), 
-                            csv_file = NULL)
-head(n_at_risk)
+risk_table_coarse <- prepare_risk_table(ncc = ncc_2, t_match_name = "t_yr", 
+                                        y_name = "Fail", 
+                                        match_var_names = c("gender", "age_cat"), 
+                                        csv_file = NULL)
+head(risk_table_coarse)
 ```
 
 This template will be written to a `csv` if specified by `csv_file`, making it 
