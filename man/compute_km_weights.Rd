@@ -28,10 +28,10 @@ subject: start time (if not 0 for all subjects) and end time of follow-up,
 censoring status and matching variables (if any). A \code{data.frame} or a
 matrix with column names.}
 
-\item{ncc}{(Matched) NCC data, if \code{cohort} is not available. This data
-should not include the ID of each matched set, but should include the
-actual event/censoring time of each subject. A \code{data.frame} or a
-matrix with column names.}
+\item{ncc}{(Matched) NCC data, if \code{cohort} is not available.
+\strong{This data should not include the ID of each matched set, but should
+include the actual event/censoring time of each subject.} A
+\code{data.frame} or a matrix with column names.}
 
 \item{id_name}{Name of the column indicating subject ID in \code{ncc}, if
 \code{cohort} is not available.}

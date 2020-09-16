@@ -210,7 +210,7 @@ compute_kmw0 <- function(risk_table) {
   }
   match_var_names <- setdiff(names(risk_table), 
                              c("t_event", "n_event", "n_at_risk", "strata", "p"))
-  km_table[, c("t_event", "strata", match_var_names, "km_weight")] %>% 
+  km_table[, c("t_event", "n_event", "strata", match_var_names, "km_weight")] %>% 
     arrange(strata, t_event) %>% 
     as.data.frame(stringsAsFactors = FALSE)
 }
@@ -221,9 +221,8 @@ compute_kmw0 <- function(risk_table) {
 #'   time of event in each set.
 #' @return Returns \code{ncc_nodup} with two additional columns: \code{.km_prob}
 #'   for KM-type probability, and \code{.km_weight} for KM-type weight.
-#' @import purrr
 assign_kmw0 <- function(ncc_nodup, risk_table) {
-  map_dfr(1:nrow(ncc_nodup), function(j) {
+  ncc_nodup <- do.call("rbind", lapply(1:nrow(ncc_nodup), function(j) {
     ncc_nodup_j <- ncc_nodup[j, ]
     if (ncc_nodup_j$.y == 1) {
       km_prob <- 1
@@ -243,7 +242,16 @@ assign_kmw0 <- function(ncc_nodup, risk_table) {
     ncc_nodup_j %>% mutate(.km_prob = km_prob, .km_weight = 1 / km_prob) %>% 
       select(-.strata0, -.strata, -.y, -.t_start, -.t) %>% 
       as.data.frame(stringsAsFactors = FALSE)
-  })
+  }))
+  if (any(is.na(ncc_nodup$.km_weight))) {
+    warning(simpleWarning(sprintf("%d entries in KM-type weight are NA.", 
+                                  sum(is.na(ncc_nodup$.km_weight)))))
+  }
+  if (any(is.infinite(ncc_nodup$.km_weight))) {
+    warning(simpleWarning(sprintf("%d entries in KM-type weight are infinite.", 
+                                  sum(is.infinite(ncc_nodup$.km_weight)))))
+  }
+  ncc_nodup
 }
 #' <Private function> Compute KM-type weights for NCC sample given full cohort,
 #' possibly with dropped controls
@@ -302,7 +310,7 @@ compute_kmw_cohort <- function(cohort, t_start_name = NULL, t_name, sample_stat,
   if (return_risk_table) { 
     # Return time of event and number of subject at risk at each event time
     list(dat = dat, 
-         risk_table = risk_table[, c("t_event", match_var_names, "n_at_risk")])
+         risk_table = risk_table[, c("t_event", "n_event", match_var_names, "n_at_risk")])
   } else { 
     dat
   }
@@ -397,6 +405,7 @@ compute_kmw_ncc <- function(ncc, id_name = NULL, risk_table_manual,
                             n_per_case, n_kept = n_per_case, 
                             return_risk_table = FALSE, 
                             km_names = c(".km_prob", ".km_weight")) {
+  message(simpleMessage("Make sure input ncc does not include ID of matched sets.\n"))
   ncc <- unique(as.data.frame(ncc))
   if (!(y_name %in% names(ncc))) {
     stop(simpleError(paste(y_name, "not found in ncc.")))
@@ -443,9 +452,10 @@ compute_kmw_ncc <- function(ncc, id_name = NULL, risk_table_manual,
       change_km_names(km_names = km_names) %>%
       as.data.frame(stringsAsFactors = FALSE)
   }
+  message(simpleMessage(sprintf("Returned data contains %d rows for the %d unique subjects in the input ncc (identified by %s).\n", nrow(dat), nrow(dat), id_name)))
   if (return_risk_table) {
     list(dat = dat, 
-         risk_table = risk_table[, c("t_event", match_var_names, "n_at_risk")])
+         risk_table = risk_table[, c("t_event", "n_event", match_var_names, "n_at_risk")])
   } else {
     dat
   }
@@ -552,10 +562,10 @@ change_km_names <- function(dat, km_names) {
 #' Compute Kaplan-Meier type weights for (matched) nested case-control (NCC)
 #' sample, possibly with dropped controls
 #' @inheritParams compute_kmw_cohort
-#' @param ncc (Matched) NCC data, if \code{cohort} is not available. This data
-#'   should not include the ID of each matched set, but should include the
-#'   actual event/censoring time of each subject. A \code{data.frame} or a
-#'   matrix with column names.
+#' @param ncc (Matched) NCC data, if \code{cohort} is not available.
+#'   \strong{This data should not include the ID of each matched set, but should
+#'   include the actual event/censoring time of each subject.} A
+#'   \code{data.frame} or a matrix with column names.
 #' @param risk_table_manual Number of subjects at risk at time of each cases in
 #'   the NCC, if \code{cohort} is not available. A \code{data.frame} or a matrix
 #'   with column names. See Details.
@@ -675,8 +685,10 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, id_name = NULL,
 }
 #' Compute Kaplan-Meier type weights for newly collected NCC controls
 #' @param ncc_controls Newly collected NCC controls, where each row corresponds
-#'   to a unique subject. This data should include the actual event/censoring
-#'   time of each subject. A \code{data.frame} or a matrix with column names.
+#'   to a unique subject. Make sure this dataset does not include any subject
+#'   that later became cases. This data should include the actual
+#'   event/censoring time of each subject. A \code{data.frame} or a matrix with
+#'   column names.
 #' @param risk_table_manual Number of subjects at risk at time of each cases in
 #'   the NCC, prepared using function \code{\link{match_risk_table}}.
 #' @param t_start_name Name of the variable in \code{ncc_controls} for the start

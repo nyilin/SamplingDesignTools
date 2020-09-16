@@ -10,8 +10,8 @@ cohort <- data.frame(id = 1:10,
 # Let everyone start at t=0 and end at t2:
 # plot(x = c(0, 10), y = c(1, 10), type = "n", xlab = "time", ylab = "id")
 # apply(cohort, 1, function(row) {
-#   lines(x = c(0, row[3]), y = rep(row[1], 2), 
-#         col = ifelse(row[5] == 1, "black", "red"), 
+#   lines(x = c(0, row[3]), y = rep(row[1], 2),
+#         col = ifelse(row[5] == 1, "black", "red"),
 #         lty = ifelse(row[6] == "a", 1, 2))
 #   if (row[4] == 1) points(x = row[3], y = row[1], pch = "x")
 # })
@@ -180,8 +180,8 @@ test_that("compute_kmw_cohort: matched on a&b", {
 # Staggered entry:
 # plot(x = c(0, 10), y = c(1, 10), type = "n", xlab = "time", ylab = "id")
 # apply(cohort, 1, function(row) {
-#   lines(x = c(row[2], row[3]), y = rep(row[1], 2), 
-#         col = ifelse(row[5] == 1, "black", "red"), 
+#   lines(x = c(row[2], row[3]), y = rep(row[1], 2),
+#         col = ifelse(row[5] == 1, "black", "red"),
 #         lty = ifelse(row[6] == "a", 1, 2))
 #   if (row[4] == 1) points(x = row[3], y = row[1], pch = "x")
 # })

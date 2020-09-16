@@ -16,8 +16,10 @@ compute_km_weights_controls(
 }
 \arguments{
 \item{ncc_controls}{Newly collected NCC controls, where each row corresponds
-to a unique subject. This data should include the actual event/censoring
-time of each subject. A \code{data.frame} or a matrix with column names.}
+to a unique subject. Make sure this dataset does not include any subject
+that later became cases. This data should include the actual
+event/censoring time of each subject. A \code{data.frame} or a matrix with
+column names.}
 
 \item{risk_table_manual}{Number of subjects at risk at time of each cases in
 the NCC, prepared using function \code{\link{match_risk_table}}.}
