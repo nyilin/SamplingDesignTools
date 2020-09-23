@@ -5,7 +5,7 @@
 \title{<Private function> Compute the probability that an eligible non-case is not
 sampled at each event time}
 \usage{
-p_not_sampled(n_event, n_at_risk, n_per_case, n_kept)
+p_not_sampled(n_event, n_at_risk, n_per_case)
 }
 \arguments{
 \item{n_event}{A vector of number of event at each event time (1 if no tie in
@@ -16,10 +16,6 @@ time. Non-integers are rounded down.}
 
 \item{n_per_case}{Number of controls to select per case. A positive integer.
 Non-integers are rounded down.}
-
-\item{n_kept}{Number of sampled controls kept in the final sample. A positive
-integer smaller than or equal to \code{n_per_case}. Non-integers are
-rounded down.}
 }
 \value{
 Returns a vector of probabilities.

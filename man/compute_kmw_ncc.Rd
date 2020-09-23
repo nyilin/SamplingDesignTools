@@ -3,11 +3,11 @@
 \name{compute_kmw_ncc}
 \alias{compute_kmw_ncc}
 \title{<Private function> Compute KM-type weight for NCC sample given information on 
-underlying cohort, possibly with dropped controls}
+underlying cohort}
 \usage{
 compute_kmw_ncc(
   ncc,
-  id_name = NULL,
+  id_name,
   risk_table_manual,
   t_start_name = NULL,
   t_name,
@@ -15,7 +15,6 @@ compute_kmw_ncc(
   y_name,
   match_var_names = NULL,
   n_per_case,
-  n_kept = n_per_case,
   return_risk_table = FALSE,
   km_names = c(".km_prob", ".km_weight")
 )
@@ -51,9 +50,6 @@ not coarsened.}
 
 \item{n_per_case}{Number of controls matched to each case.}
 
-\item{n_kept}{Number of sampled controls in each set that were kept in the
-final NCC. Default is \code{n_per_case}.}
-
 \item{return_risk_table}{Whether the risk table should be returned. Default
 is \code{FALSE}.}
 
@@ -75,5 +71,5 @@ If \code{return_risk_table = FALSE} (the default), returns a
 }
 \description{
 <Private function> Compute KM-type weight for NCC sample given information on 
-underlying cohort, possibly with dropped controls
+underlying cohort
 }

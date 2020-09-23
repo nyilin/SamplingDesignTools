@@ -171,7 +171,7 @@ counter-matched on a binary surrogate. 1:3 NCC-CM indicates the analysis
 of the time-matched sample counter-matched on a surrogate with 4
 categories.
 
-# 2 Dropping controls in NCC
+# 2 Compute KM-type weights for NCC sample
 
 ``` r
 data(cohort_2)
@@ -264,74 +264,21 @@ m_cox_ncc_2 <- coxph(Surv(t, y) ~ x * z + gender + age, data = ncc_2_nodup,
 m_clogit_ncc_2 <- clogit(Fail ~ x * z + strata(Set), data = ncc_2)
 ```
 
-## 1:5 NCC with 3 controls dropped
-
-I dropped 3 controls from each sampled set, and only kept the
-information on the exposure for the cases and controls left.
-
-``` r
-n_kept <- 2
-# Only keep the case and the first 2 controls
-i_case <- which(ncc_2$Fail == 1)
-i_kept <- rep(i_case, each = n_kept + 1) + rep(0:n_kept, length(i_case))
-ncc_2_drop3 <- ncc_2[i_kept, ]
-keep_stat <- numeric(nrow(cohort_2))
-keep_stat[ncc_2_drop3$Map] <- 1
-sample_stat_drop3 <- ifelse(keep_stat == 1, sample_stat, 0)
-table(sample_stat, keep_stat)
-##            keep_stat
-## sample_stat     0     1
-##           0 84916     0
-##           1  7092  5219
-##           2     0  2773
-ncc_2_nodup_drop3 <- compute_km_weights(cohort = cohort_2, t_name = "t", y_name = "y",
-                                        sample_stat = sample_stat_drop3, 
-                                        match_var_names = c("age_cat", "gender"), 
-                                        n_per_case = n_per_case, n_kept = n_kept)
-## Start time is 0 for all subjects. Event/censoring time is given by variable t.
-## Joining, by = c("age_cat", "gender")
-## Joining, by = "strata"
-head(ncc_2_nodup_drop3, 12)
-##     id y          t x age age_cat gender z    km_prob km_weight
-## 1   36 1  0.2016047 1 -16 (35,45]      1 0 1.00000000   1.00000
-## 2   61 1 14.8098399 1   7 (55,65]      0 0 1.00000000   1.00000
-## 3   72 1  4.1087132 1  -1 (45,55]      0 1 1.00000000   1.00000
-## 4   76 1 20.1285244 1  15 (65,75]      0 1 1.00000000   1.00000
-## 5   84 1  5.9032539 1  -9 (45,55]      1 1 1.00000000   1.00000
-## 6   86 1  6.0871929 1  -3 (45,55]      1 0 1.00000000   1.00000
-## 7  116 0 11.6328597 1   1 (55,65]      1 0 0.04928111  20.29175
-## 8  121 0 12.5638565 1  -2 (45,55]      1 0 0.04349269  22.99237
-## 9  145 0 25.0000000 1  -2 (45,55]      1 0 0.08385424  11.92546
-## 10 151 0 23.4817749 1  -1 (45,55]      0 0 0.09013661  11.09427
-## 11 176 1 16.2877312 1   3 (55,65]      0 1 1.00000000   1.00000
-## 12 187 0 25.0000000 1  -3 (45,55]      0 0 0.09389862  10.64978
-summary(ncc_2_nodup_drop3$km_weight)
-##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##    1.00    1.00   10.64   12.25   13.32 1205.79
-m_cox_ncc_2_drop3 <- coxph(Surv(t, y) ~ x * z + gender + age, data = ncc_2_nodup_drop3,
-                           weights = km_weight, robust = TRUE)
-m_clogit_ncc_2_drop3 <- clogit(Fail ~ x * z + strata(Set), data = ncc_2_drop3)
-```
-
 ## Compare results
 
 ``` r
 results_2 <- rbind(summary(m_cox_cohort_2)$coef, 
                    summary(m_clogit_ncc_2)$coef, 
-                   summary(m_cox_ncc_2)$coef[, -3], 
-                   summary(m_clogit_ncc_2_drop3)$coef,
-                   summary(m_cox_ncc_2_drop3)$coef[, -3])
+                   summary(m_cox_ncc_2)$coef[, -3])
 results_2 <- data.frame(Variable = rownames(results_2), results_2, 
                         check.names = FALSE)
 rownames(results_2) <- NULL
 kable(data.frame(
   Data = c("Full cohort", rep("", 4), 
-           "1:5 NCC (clogit)", rep("", 2), "1:5 NCC (weighted Cox)", rep("", 4),
-           "1:5 NCC keep 2 controls (clogit)", rep("", 2),
-           "1:5 NCC keep 2 controls (weighted Cox)", rep("", 4)), 
+           "1:5 NCC (clogit)", rep("", 2), 
+           "1:5 NCC (weighted Cox)", rep("", 4)), 
   Variable = results_2$Variable, 
   `True HR` = c(c(1.5, 4, 1.01, 1.01, 2), 
-                c(1.5, 4, 2), c(1.5, 4, 1.01, 1.01, 2), 
                 c(1.5, 4, 2), c(1.5, 4, 1.01, 1.01, 2)),
   `Estimated HR` = results_2[, "exp(coef)"], 
   `SE of log(HR)` = results_2[, "se(coef)"], 
@@ -339,29 +286,21 @@ kable(data.frame(
 ), digits = c(0, 0, 2, 2, 3, 3))
 ```
 
-| Data                                   | Variable | True HR | Estimated HR | SE of log(HR) | p-value |
-| :------------------------------------- | :------- | ------: | -----------: | ------------: | ------: |
-| Full cohort                            | x        |    1.50 |         1.47 |         0.110 |   0.001 |
-|                                        | z        |    4.00 |         4.46 |         0.126 |   0.000 |
-|                                        | age      |    1.01 |         1.01 |         0.002 |   0.000 |
-|                                        | gender   |    1.01 |         0.92 |         0.038 |   0.024 |
-|                                        | x:z      |    2.00 |         1.90 |         0.135 |   0.000 |
-| 1:5 NCC (clogit)                       | x        |    1.50 |         1.51 |         0.114 |   0.000 |
-|                                        | z        |    4.00 |         4.54 |         0.135 |   0.000 |
-|                                        | x:z      |    2.00 |         1.92 |         0.145 |   0.000 |
-| 1:5 NCC (weighted Cox)                 | x        |    1.50 |         1.50 |         0.112 |   0.000 |
-|                                        | z        |    4.00 |         4.41 |         0.132 |   0.000 |
-|                                        | gender   |    1.01 |         0.90 |         0.045 |   0.017 |
-|                                        | age      |    1.01 |         1.01 |         0.002 |   0.001 |
-|                                        | x:z      |    2.00 |         2.00 |         0.142 |   0.000 |
-| 1:5 NCC keep 2 controls (clogit)       | x        |    1.50 |         1.50 |         0.120 |   0.001 |
-|                                        | z        |    4.00 |         4.27 |         0.148 |   0.000 |
-|                                        | x:z      |    2.00 |         1.90 |         0.160 |   0.000 |
-| 1:5 NCC keep 2 controls (weighted Cox) | x        |    1.50 |         1.52 |         0.116 |   0.000 |
-|                                        | z        |    4.00 |         4.47 |         0.141 |   0.000 |
-|                                        | gender   |    1.01 |         0.95 |         0.055 |   0.313 |
-|                                        | age      |    1.01 |         1.01 |         0.003 |   0.007 |
-|                                        | x:z      |    2.00 |         1.98 |         0.153 |   0.000 |
+| Data                   | Variable | True HR | Estimated HR | SE of log(HR) | p-value |
+| :--------------------- | :------- | ------: | -----------: | ------------: | ------: |
+| Full cohort            | x        |    1.50 |         1.47 |         0.110 |   0.001 |
+|                        | z        |    4.00 |         4.46 |         0.126 |   0.000 |
+|                        | age      |    1.01 |         1.01 |         0.002 |   0.000 |
+|                        | gender   |    1.01 |         0.92 |         0.038 |   0.024 |
+|                        | x:z      |    2.00 |         1.90 |         0.135 |   0.000 |
+| 1:5 NCC (clogit)       | x        |    1.50 |         1.51 |         0.114 |   0.000 |
+|                        | z        |    4.00 |         4.54 |         0.135 |   0.000 |
+|                        | x:z      |    2.00 |         1.92 |         0.145 |   0.000 |
+| 1:5 NCC (weighted Cox) | x        |    1.50 |         1.50 |         0.112 |   0.000 |
+|                        | z        |    4.00 |         4.41 |         0.132 |   0.000 |
+|                        | gender   |    1.01 |         0.90 |         0.045 |   0.017 |
+|                        | age      |    1.01 |         1.01 |         0.002 |   0.001 |
+|                        | x:z      |    2.00 |         2.00 |         0.142 |   0.000 |
 
 **Notes:** 1:5 NCC indicates the weighted analysis of the NCC without
 dropping any controls. 1:5 NCC keep 2 controls indicates the weighted
@@ -432,10 +371,12 @@ ncc_nodup2 <- compute_km_weights(ncc = ncc_2[, -1],
                                  id_name = "Map", 
                                  match_var_names = c("age_cat", "gender"), 
                                  n_per_case = 5)
+## Make sure input ncc does not include ID of matched sets.
 ## Joining, by = c("age_cat", "gender")
 ## Joining, by = c(".t_event", "age_cat", "gender", "n_event")
 ## Start time is 0 for all subjects. Event/censoring time is given by variable t.
 ## Joining, by = c("age_cat", "gender")
+## Returned data contains 16359 rows for the 16359 unique subjects in the input ncc (identified by Map).
 m_cox_ncc_2_v2 <- coxph(Surv(t, Fail) ~ x * z + age + gender, 
                         data = ncc_nodup2, weights = km_weight, robust = TRUE)
 ```

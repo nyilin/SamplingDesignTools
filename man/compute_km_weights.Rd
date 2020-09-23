@@ -3,7 +3,7 @@
 \name{compute_km_weights}
 \alias{compute_km_weights}
 \title{Compute Kaplan-Meier type weights for (matched) nested case-control (NCC)
-sample, possibly with dropped controls}
+sample}
 \usage{
 compute_km_weights(
   cohort = NULL,
@@ -17,7 +17,6 @@ compute_km_weights(
   y_name = NULL,
   match_var_names = NULL,
   n_per_case,
-  n_kept = n_per_case,
   return_risk_table = FALSE,
   km_names = c("km_prob", "km_weight")
 )
@@ -61,15 +60,15 @@ The length of this vector must be the same as the number of rows in
 \code{risk_table_manual}. A \code{string}. Default is \code{t_name}, i.e., 
 not coarsened.}
 
+\item{y_name}{Name of the column of censoring status in \code{cohort} or
+\code{ncc}, with 1 for event and 0 for censoring. A \code{string}.}
+
 \item{match_var_names}{Name(s) of the match variable(s) in \code{cohort} or
 \code{ncc} used when drawing the NCC. A \code{string} vector. Default is
 \code{NULL}, i.e., the NCC was only time-matched. The corresponding column
 in \code{risk_table_manual} must have the same name.}
 
 \item{n_per_case}{Number of controls matched to each case.}
-
-\item{n_kept}{Number of sampled controls in each set that were kept in the
-final NCC. Default is \code{n_per_case}.}
 
 \item{return_risk_table}{Whether the risk table should be returned. Default
 is \code{FALSE}.}
@@ -81,7 +80,7 @@ attached to each subject in the input data. Default is
 }
 \description{
 Compute Kaplan-Meier type weights for (matched) nested case-control (NCC)
-sample, possibly with dropped controls
+sample
 }
 \details{
 When the full cohort is not available, in order to compute the

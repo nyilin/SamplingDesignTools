@@ -72,34 +72,13 @@ test_that("compute_risk_table: matching on a&b", {
 
 test_that("compute_p: normal", {
   p <- SamplingDesignTools:::p_not_sampled(n_event = 1, n_at_risk = 6, 
-                                           n_per_case = 2, n_kept = 2)
+                                           n_per_case = 2)
   expect_identical(p, 1 - 2 / 5)
 })
 test_that("compute_p: not enough non-cases", {
   p <- SamplingDesignTools:::p_not_sampled(n_event = 1, n_at_risk = 3, 
-                                           n_per_case = 5, n_kept = 5)
+                                           n_per_case = 5)
   expect_identical(p, 0)
-})
-test_that("compute_p: normal, drop control", {
-  p <- SamplingDesignTools:::p_not_sampled(n_event = 1, n_at_risk = 6, 
-                                           n_per_case = 2, n_kept = 1)
-  p_selected <- 2 / 5
-  p_kept <- 1 / 2
-  expect_identical(p, (1 - p_selected) + p_selected * (1 - p_kept))
-})
-test_that("compute_p: normal, keep too many", {
-  expect_warning({
-    p <- SamplingDesignTools:::p_not_sampled(n_event = 1, n_at_risk = 6, 
-                                             n_per_case = 2, n_kept = 3)
-  })
-  expect_identical(p, 1 - 2 / 5)
-})
-test_that("compute_p: not enough non-cases, but drop some", {
-  p <- SamplingDesignTools:::p_not_sampled(n_event = 1, n_at_risk = 6, 
-                                           n_per_case = 5, n_kept = 2)
-  p2 <- SamplingDesignTools:::p_not_sampled(n_event = 1, n_at_risk = 6, 
-                                            n_per_case = 2, n_kept = 2)
-  expect_identical(p, p2)
 })
 
 test_that("km_weight: no matching", {
@@ -110,8 +89,7 @@ test_that("km_weight: no matching", {
                                               staggered = FALSE) %>% 
     mutate(p = SamplingDesignTools:::p_not_sampled(n_event = n_event, 
                                                    n_at_risk = n_at_risk, 
-                                                   n_per_case = 1, 
-                                                   n_kept = 1))
+                                                   n_per_case = 1))
   tb_kmw <- SamplingDesignTools:::compute_kmw0(risk_table = tb)
   tb_kmw2 <- data.frame(
     t_event = c(2, 4, 5, 7, 8, 9), 
@@ -129,9 +107,9 @@ test_that("km_weight: matched on a&b", {
                                               staggered = FALSE) %>% 
     mutate(p = SamplingDesignTools:::p_not_sampled(n_event = n_event, 
                                                    n_at_risk = n_at_risk, 
-                                                   n_per_case = 1, 
-                                                   n_kept = 1))
-  tb_kmw <- SamplingDesignTools:::compute_kmw0(risk_table = tb)
+                                                   n_per_case = 1))
+  tb_kmw <- tb %>% filter(t_event %in% c(2, 4, 5, 8)) %>% 
+    SamplingDesignTools:::compute_kmw0(risk_table = .)
   tb_kmw2 <- data.frame(t_event = c(2, 4, 5, 8), kmw = c(1, 2, 2, 1))
   tb <- left_join(tb_kmw, tb_kmw2)
   expect_equal(tb$km_weight, tb$kmw)
@@ -337,7 +315,7 @@ test_that("attach km_weight to ncc controls: no matching", {
       t_name = "t", match_var_names = NULL
     ) %>% 
     mutate(p = SamplingDesignTools:::p_not_sampled(
-      n_event = n_event, n_at_risk = n_at_risk, n_per_case = 1, n_kept = 1
+      n_event = n_event, n_at_risk = n_at_risk, n_per_case = 1
     ))
   ncc_controls <- cohort %>% 
     filter(id %in% setdiff(ncc$id[ncc$fail == 0], ncc$id[ncc$fail == 1])) %>% 
@@ -478,7 +456,7 @@ km_table_ncc <- ncc_2 %>% filter(Fail == 1) %>% select(-Set) %>%
     match_var_names = c("age_cat", "gender")
   ) %>% 
   mutate(p = SamplingDesignTools:::p_not_sampled(
-    n_event = n_event, n_at_risk = n_at_risk, n_per_case = 5, n_kept = 5
+    n_event = n_event, n_at_risk = n_at_risk, n_per_case = 5
   )) %>% 
   SamplingDesignTools:::compute_kmw0(risk_table = .)
 test_that("match_risk_table", {
@@ -488,7 +466,7 @@ test_that("match_risk_table", {
 output4 <- ncc_2 %>% filter(Fail == 1) %>% select(-Set) %>% 
   SamplingDesignTools::compute_km_weights(
     ncc = ., risk_table_manual = risk_table, 
-    id_name = "Map", t_name = "t", y_name = "Fail", 
+    id_name = "Map", t_name = "t", t_match_name = "Time", y_name = "Fail", 
     match_var_names = c("age_cat", "gender"), n_per_case = 5, 
     return_risk_table = TRUE
   ) 
