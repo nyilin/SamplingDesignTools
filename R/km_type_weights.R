@@ -144,12 +144,9 @@ compute_risk_tb <- function(cohort, match_var_names, staggered) {
 #'   time. Non-integers are rounded down.
 #' @param n_per_case Number of controls to select per case. A positive integer.
 #'   Non-integers are rounded down.
-#' @param n_kept Number of sampled controls kept in the final sample. A positive
-#'   integer smaller than or equal to \code{n_per_case}. Non-integers are
-#'   rounded down.
 #' @return Returns a vector of probabilities.
 #' @import dplyr
-p_not_sampled <- function(n_event, n_at_risk, n_per_case, n_kept) {
+p_not_sampled <- function(n_event, n_at_risk, n_per_case) {
   n_event <- as.integer(as.vector(n_event))
   n_at_risk <- as.integer(as.vector(n_at_risk))
   if (anyNA(n_event)) stop(simpleError("Some entries in n_event are not numeric."))
@@ -164,27 +161,11 @@ p_not_sampled <- function(n_event, n_at_risk, n_per_case, n_kept) {
   if (is.na(n_per_case) || n_per_case < 1) {
     stop(simpleError("n_per_case must be a positive integer."))
   }
-  n_kept <- as.integer(n_kept)
-  if (is.na(n_kept) || n_kept < 1) {
-    stop(simpleError("n_kept must be a positive integer."))
-  }
-  if (n_kept > n_per_case) {
-    warning(simpleWarning("Number of controls to keep is larger than number of controls selected, therefore all selected controls are kept."))
-    n_kept <- n_per_case
-  }
   df <- data.frame(n_event = n_event, Rj = n_at_risk - n_event) %>% 
     mutate(n_target = n_event * n_per_case, 
            n_sampled = ifelse(Rj > n_target, n_target, Rj), 
            p0 = 1 - n_sampled / Rj, # not sampled
            p = p0)
-  if (n_per_case > 1 & n_kept < n_per_case) { 
-    df <- df %>% mutate(
-      p_not_kept = ifelse(n_sampled > 1 & n_sampled > n_kept, 
-                          (n_sampled - n_kept) / n_sampled, 0), 
-      # p_not_sampled = p(not selected) + p(selected but not kept)
-      p = p0 + (1 - p0) * p_not_kept
-    )
-  } 
   as.numeric(df$p)
 }
 #' <Private function> Compute KM-type weight from risk table, provided t=0 for all
@@ -253,8 +234,7 @@ assign_kmw0 <- function(ncc_nodup, risk_table) {
   }
   ncc_nodup
 }
-#' <Private function> Compute KM-type weights for NCC sample given full cohort,
-#' possibly with dropped controls
+#' <Private function> Compute KM-type weights for NCC sample given full cohort
 #' @inheritParams prepare_cohort
 #' @param t_start_name Name of the variable in \code{cohort_skeleton} for the
 #'   start time of follow-up. A \code{string}. Default is \code{NULL}, where all 
@@ -268,8 +248,6 @@ assign_kmw0 <- function(ncc_nodup, risk_table) {
 #'   when drawing the NCC. A \code{string} vector. Default is \code{NULL}, i.e.,
 #'   the NCC was only time-matched. 
 #' @param n_per_case Number of controls matched to each case.
-#' @param n_kept Number of sampled controls in each set that were kept in the
-#'   final NCC. Default is \code{n_per_case}.
 #' @param return_risk_table Whether the risk table should be returned. Default
 #'   is \code{FALSE}.
 #' @param km_names Column names for the KM-type probability (the first element)
@@ -287,8 +265,7 @@ assign_kmw0 <- function(ncc_nodup, risk_table) {
 #' @import dplyr
 #' @import purrr
 compute_kmw_cohort <- function(cohort, t_start_name = NULL, t_name, sample_stat, 
-                               match_var_names = NULL,
-                               n_per_case, n_kept = n_per_case, 
+                               match_var_names = NULL, n_per_case, 
                                return_risk_table = FALSE, 
                                km_names = c(".km_prob", ".km_weight")) {
   cohort <- unique(as.data.frame(cohort))
@@ -302,7 +279,7 @@ compute_kmw_cohort <- function(cohort, t_start_name = NULL, t_name, sample_stat,
   risk_table <- compute_risk_tb(cohort = cohort, match_var_names = match_var_names, 
                                 staggered = !is.null(t_start_name)) %>% 
     mutate(p = p_not_sampled(n_event = n_event, n_at_risk = n_at_risk, 
-                             n_per_case = n_per_case, n_kept = n_kept))
+                             n_per_case = n_per_case))
   # Assign km_weight to each subject
   dat <- assign_kmw0(ncc_nodup = cohort[sample_stat > 0, ], 
                      risk_table = risk_table)
@@ -365,7 +342,7 @@ match_risk_table <- function(ncc_cases, risk_table_manual, t_coarse_name, t_name
     as.data.frame(stringsAsFactors = FALSE)
 }
 #' <Private function> Compute KM-type weight for NCC sample given information on 
-#' underlying cohort, possibly with dropped controls
+#' underlying cohort
 #' @inheritParams match_risk_table
 #' @param ncc NCC data. A \code{data.frame} or a matrix with column names. This
 #'   data should not include the ID of each matched set, but should include the
@@ -381,8 +358,6 @@ match_risk_table <- function(ncc_cases, risk_table_manual, t_coarse_name, t_name
 #' @param y_name Name of the column of censoring status in each matched set in
 #'   \code{ncc}, with 1 for event and 0 for censoring. A \code{string}.
 #' @param n_per_case Number of controls matched to each case.
-#' @param n_kept Number of sampled controls in each set that were kept in the
-#'   final NCC. Default is \code{n_per_case}.
 #' @param return_risk_table Whether the risk table should be returned. Default
 #'   is \code{FALSE}.
 #' @param km_names Column names for the KM-type probability (the first element)
@@ -401,8 +376,7 @@ match_risk_table <- function(ncc_cases, risk_table_manual, t_coarse_name, t_name
 #' @import dplyr
 compute_kmw_ncc <- function(ncc, id_name = NULL, risk_table_manual, 
                             t_start_name = NULL, t_name, t_match_name = t_name, 
-                            y_name, match_var_names = NULL,
-                            n_per_case, n_kept = n_per_case, 
+                            y_name, match_var_names = NULL, n_per_case, 
                             return_risk_table = FALSE, 
                             km_names = c(".km_prob", ".km_weight")) {
   message(simpleMessage("Make sure input ncc does not include ID of matched sets.\n"))
@@ -418,7 +392,7 @@ compute_kmw_ncc <- function(ncc, id_name = NULL, risk_table_manual,
                                  t_coarse_name = t_match_name, t_name = t_name, 
                                  match_var_names = match_var_names) %>% 
     mutate(p = p_not_sampled(n_event = n_event, n_at_risk = n_at_risk, 
-                             n_per_case = n_per_case, n_kept = n_kept))
+                             n_per_case = n_per_case))
   ncc_cases <- ncc_cases[, -which(names(ncc_cases) == t_match_name)] 
   if (sum(ncc[, y_name] != 1) == 0) {
     dat <- ncc_cases %>% mutate(.km_prob = 1, .km_weight = 1 / .km_prob) %>% 
@@ -560,7 +534,7 @@ change_km_names <- function(dat, km_names) {
   dat
 }
 #' Compute Kaplan-Meier type weights for (matched) nested case-control (NCC)
-#' sample, possibly with dropped controls
+#' sample
 #' @inheritParams compute_kmw_cohort
 #' @param ncc (Matched) NCC data, if \code{cohort} is not available.
 #'   \strong{This data should not include the ID of each matched set, but should
@@ -665,7 +639,7 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, id_name = NULL,
                        t_start_name = t_start_name, t_name = t_name, 
                        sample_stat = sample_stat, 
                        match_var_names = match_var_names, 
-                       n_per_case = n_per_case, n_kept = n_kept, 
+                       n_per_case = n_per_case, 
                        return_risk_table = return_risk_table, 
                        km_names = km_names)
   } else {
@@ -678,7 +652,7 @@ compute_km_weights <- function(cohort = NULL, ncc = NULL, id_name = NULL,
                     t_start_name = t_start_name, t_name = t_name, 
                     t_match_name = t_match_name, y_name = y_name, 
                     match_var_names = match_var_names, 
-                    n_per_case = n_per_case, n_kept = n_kept, 
+                    n_per_case = n_per_case, 
                     return_risk_table = return_risk_table, 
                     km_names = km_names)
   }
@@ -714,7 +688,7 @@ compute_km_weights_controls <- function(ncc_controls, risk_table_manual,
   ncc_controls$.y <- 0
   risk_table <- risk_table_manual %>% 
     mutate(p = p_not_sampled(n_event = n_event, n_at_risk = n_at_risk, 
-                             n_per_case = n_per_case, n_kept = n_per_case))
+                             n_per_case = n_per_case))
   ncc_controls %>% 
     prepare_cohort(cohort = ., t_start_name = t_start_name, t_name = t_name, 
                    y_name = ".y", match_var_names = match_var_names) %>%

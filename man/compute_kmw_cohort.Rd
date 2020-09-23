@@ -2,8 +2,7 @@
 % Please edit documentation in R/km_type_weights.R
 \name{compute_kmw_cohort}
 \alias{compute_kmw_cohort}
-\title{<Private function> Compute KM-type weights for NCC sample given full cohort,
-possibly with dropped controls}
+\title{<Private function> Compute KM-type weights for NCC sample given full cohort}
 \usage{
 compute_kmw_cohort(
   cohort,
@@ -12,7 +11,6 @@ compute_kmw_cohort(
   sample_stat,
   match_var_names = NULL,
   n_per_case,
-  n_kept = n_per_case,
   return_risk_table = FALSE,
   km_names = c(".km_prob", ".km_weight")
 )
@@ -42,9 +40,6 @@ the NCC was only time-matched.}
 
 \item{n_per_case}{Number of controls matched to each case.}
 
-\item{n_kept}{Number of sampled controls in each set that were kept in the
-final NCC. Default is \code{n_per_case}.}
-
 \item{return_risk_table}{Whether the risk table should be returned. Default
 is \code{FALSE}.}
 
@@ -64,6 +59,5 @@ If \code{return_risk_table = FALSE} (the default), returns the
   variables (\code{n_at_risk}).
 }
 \description{
-<Private function> Compute KM-type weights for NCC sample given full cohort,
-possibly with dropped controls
+<Private function> Compute KM-type weights for NCC sample given full cohort
 }
