@@ -4,7 +4,14 @@
 \alias{prepare_cohort}
 \title{<Private function> Prepare the skeleton cohort for subsequent steps.}
 \usage{
-prepare_cohort(cohort, t_start_name, t_name, y_name, match_var_names)
+prepare_cohort(
+  cohort,
+  t_start_name,
+  t_name,
+  y_name,
+  match_var_names,
+  print_message = TRUE
+)
 }
 \arguments{
 \item{cohort}{Cohort data with at least the following information on each
@@ -23,6 +30,9 @@ censoring time. A \code{string}.}
 
 \item{match_var_names}{Name(s) of the match variable(s) in \code{cohort} used
 when drawing the NCC. A \code{string} vector.}
+
+\item{print_message}{Whether to print the message regarding start and exit
+time. Default is \code{TRUE}.}
 }
 \description{
 <Private function> Prepare the skeleton cohort for subsequent steps.

@@ -11,9 +11,11 @@
 #'   \code{cohort}, with 1 for event and 0 for censoring. A \code{string}.
 #' @param match_var_names Name(s) of the match variable(s) in \code{cohort} used
 #'   when drawing the NCC. A \code{string} vector.
+#' @param print_message Whether to print the message regarding start and exit
+#'   time. Default is \code{TRUE}.
 #' @import dplyr
 prepare_cohort <- function(cohort, t_start_name, t_name, y_name,
-                           match_var_names) {
+                           match_var_names, print_message = TRUE) {
   cohort <- unique(as.data.frame(cohort))
   if (!(y_name %in% names(cohort))) {
     stop(simpleError(paste(y_name, "not found in cohort.")))
@@ -24,16 +26,20 @@ prepare_cohort <- function(cohort, t_start_name, t_name, y_name,
     if (!(t_start_name %in% names(cohort))) {
       stop(simpleError(paste(t_start_name, "not found in cohort.")))
     }
-    message(simpleMessage(sprintf(
-      "Start time is given by variable %s. Event/censoring time is given by variable %s.\n", 
-      t_start_name, t_name
-    )))
+    if (print_message) {
+      message(simpleMessage(sprintf(
+        "Start time is given by variable %s. Event/censoring time is given by variable %s.\n", 
+        t_start_name, t_name
+      )))
+    }
     cohort$.t_start <- cohort[, t_start_name]
   } else {
-    message(simpleMessage(sprintf(
-      "Start time is 0 for all subjects. Event/censoring time is given by variable %s.\n", 
-      t_name
-    )))
+    if (print_message) {
+      message(simpleMessage(sprintf(
+        "Start time is 0 for all subjects. Event/censoring time is given by variable %s.\n", 
+        t_name
+      )))
+    }
     cohort$.t_start <- -Inf # Not used in Surv()
   }
   if (!(t_name %in% names(cohort))) {
@@ -424,13 +430,14 @@ compute_kmw_ncc <- function(ncc, id_name, risk_table_manual,
     dat <- rbind(ncc_cases, ncc_controls)
     dat <- dat[sort.list(dat[, id_name]), ] %>% 
       prepare_cohort(cohort = ., t_start_name = t_start_name, t_name = t_name, 
-                     y_name = y_name, match_var_names = match_var_names) %>% 
+                     y_name = y_name, match_var_names = match_var_names, 
+                     print_message = FALSE) %>% 
       assign_kmw0(ncc_nodup = ., risk_table = risk_table) %>% 
       change_km_names(km_names = km_names) %>%
       as.data.frame(stringsAsFactors = FALSE)
   }
-  message(simpleMessage(sprintf("There are %d unique subjects (identified by %s) in the input ncc with %d rows, therefore there are only %d rows in the return data.\n", 
-                                length(unique(ncc[, id_name])), id_name, nrow(dat), nrow(dat))))
+  message(simpleMessage(sprintf("There are %d unique subjects (identified by %s) in the input ncc with %d rows, therefore the return data only has %d rows.\n", 
+                                length(unique(ncc[, id_name])), id_name, nrow(ncc), nrow(dat))))
   if (return_risk_table) {
     list(dat = dat, 
          risk_table = risk_table[, c("t_event", "n_event", match_var_names, "n_at_risk")])
