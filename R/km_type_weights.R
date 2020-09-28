@@ -429,7 +429,8 @@ compute_kmw_ncc <- function(ncc, id_name, risk_table_manual,
       change_km_names(km_names = km_names) %>%
       as.data.frame(stringsAsFactors = FALSE)
   }
-  message(simpleMessage(sprintf("Returned data contains %d rows for the %d unique subjects in the input ncc (identified by %s).\n", nrow(dat), nrow(dat), id_name)))
+  message(simpleMessage(sprintf("There are %d unique subjects (identified by %s) in the input ncc with %d rows, therefore there are only %d rows in the return data.\n", 
+                                length(unique(ncc[, id_name])), id_name, nrow(dat))))
   if (return_risk_table) {
     list(dat = dat, 
          risk_table = risk_table[, c("t_event", "n_event", match_var_names, "n_at_risk")])
