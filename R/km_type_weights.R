@@ -425,8 +425,11 @@ compute_kmw_ncc <- function(ncc, id_name, risk_table_manual,
     }
     id_cases <- unique(ncc_cases[, id_name])
     id_controls <- setdiff(ncc[ncc[, y_name] != 1, id_name], id_cases)
-    ncc_controls <- unique(ncc[ncc[, id_name] %in% id_controls, 
-                               -which(names(ncc) == t_match_name)])
+    # For each control, only take the row where it first appeared in the NCC
+    row_id_controls <- which(ncc[, id_name] %in% id_controls)
+    ids <- ncc[row_id_controls, id_name]
+    row_id_controls <- row_id_controls[which(!duplicated(ids))]
+    ncc_controls <- unique(ncc[row_id_controls, -which(names(ncc) == t_match_name)])
     dat <- rbind(ncc_cases, ncc_controls)
     dat <- dat[sort.list(dat[, id_name]), ] %>% 
       prepare_cohort(cohort = ., t_start_name = t_start_name, t_name = t_name, 
