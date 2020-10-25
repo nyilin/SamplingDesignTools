@@ -27,6 +27,17 @@ must be the same as the number of rows in \code{mecc}.}
 \item{mecc}{(M)ECC data. A \code{data.frame}. Make sure the covariates in
 \code{x_formula} are all centred at cohort average.}
 }
+\value{
+Returns a list consisting of two components:
+\describe{
+  \item{coef_mecc}{A \code{data.frame} containing the name of covariates in
+  the regression model (\code{var}), estimated regression coefficients
+  (\code{est}), estimated hazard ratios (\code{exp_est = exp(est)}) standard
+  error of the estimates (\code{se}), and the p-values (\code{pval}).}
+  \item{optim_obj}{The \code{optim} output from maximising the log-likelihood
+  in the weighted analysis.}
+}
+}
 \description{
 Perform weighted analysis of matched (M)ECC data
 }

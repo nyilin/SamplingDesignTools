@@ -16,7 +16,7 @@
 #' @import dplyr
 prepare_cohort <- function(cohort, t_start_name, t_name, y_name,
                            match_var_names, print_message = TRUE) {
-  cohort <- unique(as.data.frame(cohort))
+  cohort <- unique(as.data.frame(cohort, stringsAsFactors = FALSE))
   if (!(y_name %in% names(cohort))) {
     stop(simpleError(paste(y_name, "not found in cohort.")))
   } else {
@@ -71,7 +71,7 @@ prepare_cohort <- function(cohort, t_start_name, t_name, y_name,
 #'   \code{ncc_cases} used when drawing the NCC. A \code{string} vector.
 #' @import dplyr
 prepare_ncc_cases <- function(ncc_cases, t_name, match_var_names) {
-  ncc <- unique(as.data.frame(ncc_cases))
+  ncc <- unique(as.data.frame(ncc_cases, stringsAsFactors = FALSE))
   if (!(t_name %in% names(ncc))) {
     stop(simpleError(paste(t_name, "not found in ncc.")))
   } else {
@@ -274,7 +274,7 @@ compute_kmw_cohort <- function(cohort, t_start_name = NULL, t_name, sample_stat,
                                match_var_names = NULL, n_per_case, 
                                return_risk_table = FALSE, 
                                km_names = c(".km_prob", ".km_weight")) {
-  cohort <- unique(as.data.frame(cohort))
+  cohort <- unique(as.data.frame(cohort, stringsAsFactors = FALSE))
   if (length(sample_stat) != nrow(cohort)) {
     stop(simpleError("The length of sample_stat must be the same as the number of rows in cohort."))
   }
@@ -386,11 +386,43 @@ compute_kmw_ncc <- function(ncc, id_name, risk_table_manual,
                             return_risk_table = FALSE, 
                             km_names = c(".km_prob", ".km_weight")) {
   message(simpleMessage("Make sure input ncc does not include ID of matched sets.\n"))
-  ncc <- unique(as.data.frame(ncc))
+  ncc <- unique(as.data.frame(ncc, stringsAsFactors = FALSE))
+  risk_table_manual <- as.data.frame(risk_table_manual, stringsAsFactors = FALSE)
   if (!(y_name %in% names(ncc))) {
     stop(simpleError(paste(y_name, "not found in ncc.")))
   } else {
     y_name <- y_name[1]
+  }
+  if (is.null(id_name)) {
+    stop(simpleError("Cannot attach weight to each subject if subject id is unknown."))
+  } else if (!(id_name %in% names(ncc))) {
+    stop(simpleError(paste(id_name, "not found in ncc.")))
+  }
+  if (is.null(t_name)) {
+    stop(simpleError("Cannot attach weight to each subject if the event/censoring time is unknown."))
+  } else if (!(t_name %in% names(ncc))) {
+    stop(simpleError(paste(t_name, "not found in ncc.")))
+  }
+  if (is.null(t_match_name)) {
+    stop(simpleError("Please specify the variable for event time in each matched set."))
+  } else if (!(t_match_name %in% names(ncc))) {
+    stop(simpleError(paste(t_match_name, "not found in ncc.")))
+  }
+  if (!is.null(t_start_name)) {
+    if (!(t_start_name %in% names(ncc))) {
+      stop(simpleError(paste(t_start_name, "not found in ncc.")))
+    }
+  }
+  risk_tb_vars <- c("t_event", "n_event", "n_at_risk", match_var_names)
+  if (!all(risk_tb_vars %in% names(risk_table_manual))) {
+    stop(simpleError(
+      paste("risk_table_manual must include the following columns:", 
+            toString(risk_tb_vars))
+    ))
+  }
+  if (!all(ncc[, t_match_name] %in% risk_table_manual$t_event)) {
+    stop(simpleError(paste("Not all time in", t_match_name, 
+                           "in ncc are found in risk_table_manual$t_event.")))
   }
   # Make sure each row in ncc_cases uniquely corresponds to a case:
   ncc_cases <- unique(ncc[ncc[, y_name] == 1, ])
@@ -408,21 +440,6 @@ compute_kmw_ncc <- function(ncc, id_name, risk_table_manual,
       change_km_names(km_names = km_names) %>%
       as.data.frame(stringsAsFactors = FALSE)
   } else {
-    if (is.null(id_name)) {
-      stop(simpleError("Cannot attach weight to each subject if subject id is unknown."))
-    } else if (!(id_name %in% names(ncc))) {
-      stop(simpleError(paste(id_name, "not found in ncc.")))
-    }
-    if (is.null(t_name)) {
-      stop(simpleError("Cannot attach weight to each subject if the event/censoring time is unknown."))
-    } else if (!(t_name %in% names(ncc))) {
-      stop(simpleError(paste(t_name, "not found in ncc.")))
-    }
-    if (!is.null(t_start_name)) {
-      if (!(t_start_name %in% names(ncc))) {
-        stop(simpleError(paste(t_start_name, "not found in ncc.")))
-      }
-    }
     id_cases <- unique(ncc_cases[, id_name])
     id_controls <- setdiff(ncc[ncc[, y_name] != 1, id_name], id_cases)
     # For each control, only take the row where it first appeared in the NCC

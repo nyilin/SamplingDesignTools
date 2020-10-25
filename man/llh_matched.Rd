@@ -30,9 +30,13 @@ must be the same as the number of rows in \code{mecc}.}
 \item{mecc}{(M)ECC data. A \code{data.frame}. Make sure the covariates in
 \code{x_formula} are all centred at cohort average.}
 }
+\value{
+The negative log-likelihood in the weighted analysis of a matched 
+  (more) extreme case-control sample.
+}
 \description{
 Negative log-likelihood in weighted analysis of matched (M)ECC sample
 }
 \author{
-Yilin Ning, Nathalie C Stoer
+Yilin Ning, Nathalie C Støer
 }
