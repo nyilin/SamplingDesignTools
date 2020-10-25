@@ -338,6 +338,7 @@ test_that("compute km_weight given ncc: no matching, staggered entry", {
     left_join(cohort) %>% 
     arrange(set, status)
   risk_table_manual <- data.frame(t_event = c(2, 4, 5, 7, 8, 9), 
+                                  n_event = 1,
                                   n_at_risk = c(3, 6, 4, 4, 3, 1) + 1)
   ncc_nodup <- SamplingDesignTools:::compute_kmw_ncc(
     ncc = ncc[, -1], risk_table_manual = risk_table_manual, t_match_name = "t", 
@@ -368,7 +369,7 @@ test_that("compute km_weight given ncc: matched on a&b, staggered entry", {
                                               match_var_names = c("a", "b"), 
                                               staggered = TRUE) %>% 
     filter(t_event %in% ncc$t) %>% 
-    select(t_event, n_at_risk, a, b)
+    select(t_event, n_event, n_at_risk, a, b)
   ncc_nodup <- SamplingDesignTools:::compute_kmw_ncc(
     ncc = ncc[, -1], risk_table_manual = risk_table_manual, id_name = "id",
     t_start_name = "t1", t_name = "t2", t_match_name = "t", y_name = "y",
@@ -395,7 +396,7 @@ test_that("compute km_weight given ncc: matched on a&b, staggered entry, cases o
                                               match_var_names = c("a", "b"), 
                                               staggered = TRUE) %>% 
     filter(t_event %in% ncc$t) %>% 
-    select(t_event, n_at_risk, a, b)
+    select(t_event, n_event, n_at_risk, a, b)
   ncc_nodup <- SamplingDesignTools:::compute_kmw_ncc(
     ncc = ncc[ncc$y == 1, -1], risk_table_manual = risk_table_manual, id_name = "id",
     t_start_name = "t1", t_name = "t2", t_match_name = "t", y_name = "y",

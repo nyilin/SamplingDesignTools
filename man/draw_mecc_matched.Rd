@@ -36,9 +36,50 @@ eligible to be selected as controls. Extreme case-control (ECC) has
 
 \item{n_per_case}{Number of controls to match to each case.}
 }
+\value{
+Returns a \code{data.frame} of the (more) extreme case-control
+  sample, with column \code{.set_id} indicating the matched sets in the
+  sample, \code{.y} indicating the new case-control indicator (which is
+  likely to be different from the event indicator in the cohort), and the
+  estimated baseline survival probabilities (\code{surv} and \code{surv_tau})
+  that will be used in the weighted analysis of this sample.
+}
 \description{
 Draw matched (more) extreme case-control samples
 }
+\details{
+This function draws a matched (more) extreme case-control samples
+  from a cohort, with \code{n_per_case} controls drawn for each case.
+  Eligible cases are subjects who had the event before time \code{tau0} (and
+  all of them are sampled), and eligible controls are subjects who do not
+  have the event until time \code{tau}. This function throws an error if
+  there is not enough controls to select from, otherwise it uses the
+  \code{\link{draw_mcc}} function to draw a matched case-control sample.
+}
+\examples{
+# Load cohort data
+data(cohort_2) 
+head(cohort_2)
+# Draw simple 1:2 more extreme case-control sample, matched on gender. 
+# Let cases be subjects who had the event within 5 years, and controls be 
+# selected from those who did not have the event until the 15-th year.
+dat_mecc <- draw_mecc_matched(cohort = cohort_2, tau0 = 5, tau = 15, 
+                              id_name = "id", t_name = "t", delta_name = "y", 
+                              match_var_names = "gender", n_per_case = 2)
+head(dat_mecc)
+# Note that the new event indicator, `.y`, is different from the original one, 
+# `y`, in the cohort:
+identical(dat_mecc$y, dat_mecc$.y)
+}
+\references{
+\itemize{
+  \item{Salim A, Ma X, Fall K, et al. Analysis of incidence and prognosis 
+  from 'extreme' case–control designs. Stat Med 2014; 33: 5388–5398.}
+  \item{Støer NC, Salim A, Bokenberger K, et al. Is the matched extreme
+  case–control design more powerful than the nested case–control design?.
+  Stat Methods Med Res 2019; 28(6): 1911-1923.}
+}
+}
 \author{
-Yilin Ning, Nathalie C Stoer
+Yilin Ning, Nathalie C Støer
 }
