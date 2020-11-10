@@ -330,6 +330,23 @@ test_that("attach km_weight to ncc controls: no matching", {
                c(1, 9 / 4, 16 / 11))
 })
 
+test_that("compute km_weight given ncc: wrong t_match_name", {
+  ncc <- data.frame(set = rep(1:6, each = 2), 
+                    id = c(1, 3, 7, 10, 4, 8, 6, 10, 10, 2, 9, 2), 
+                    t = rep(c(2, 4, 5, 7, 8, 9), each = 2),
+                    fail = rep(c(1, 0), 6)) %>% 
+    left_join(cohort) %>% 
+    arrange(set, status)
+  risk_table_manual <- data.frame(t_event = c(2, 4, 5, 7, 8, 9), 
+                                  n_event = 1,
+                                  n_at_risk = c(3, 6, 4, 4, 3, 1) + 1)
+  expect_error(SamplingDesignTools:::compute_kmw_ncc(
+    ncc = ncc[, -1], risk_table_manual = risk_table_manual, 
+    t_match_name = "id", 
+    y_name = "fail", n_per_case = 1, id_name = "id", t_name = "t"
+  ))
+})
+
 test_that("compute km_weight given ncc: no matching, staggered entry", {
   ncc <- data.frame(set = rep(1:6, each = 2), 
                     id = c(1, 3, 7, 10, 4, 8, 6, 10, 10, 2, 9, 2), 

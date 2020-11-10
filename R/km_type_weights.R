@@ -385,7 +385,7 @@ compute_kmw_ncc <- function(ncc, id_name, risk_table_manual,
                             y_name, match_var_names = NULL, n_per_case, 
                             return_risk_table = FALSE, 
                             km_names = c(".km_prob", ".km_weight")) {
-  message(simpleMessage("Make sure input ncc does not include ID of matched sets.\n"))
+  message(simpleMessage("Make sure input ncc does not include ID of matched sets. Failing to do so results in Errors.\n"))
   ncc <- unique(as.data.frame(ncc, stringsAsFactors = FALSE))
   risk_table_manual <- as.data.frame(risk_table_manual, stringsAsFactors = FALSE)
   if (!(y_name %in% names(ncc))) {
@@ -421,17 +421,31 @@ compute_kmw_ncc <- function(ncc, id_name, risk_table_manual,
     ))
   }
   if (!all(ncc[, t_match_name] %in% risk_table_manual$t_event)) {
-    stop(simpleError(paste("Not all time in", t_match_name, 
-                           "in ncc are found in risk_table_manual$t_event.")))
+    stop(simpleError(sprintf(
+      "There is mismatch in event time in ncc ('%s') and risk_table_manual$t_event.", 
+      t_match_name
+    )))
   }
-  # Make sure each row in ncc_cases uniquely corresponds to a case:
-  ncc_cases <- unique(ncc[ncc[, y_name] == 1, ])
+  # Make sure each row in ncc_cases uniquely corresponds to a case, and if a 
+  # case is also selected as a control to other cases, we make sure we keep only 
+  # the row where a case is selected as a case (s.t. if time is not coarsened, 
+  # then t = t_mathc):
+  t_match_name_symbol <- as.symbol(t_match_name)
+  ncc_cases <- unique(ncc[ncc[, y_name] == 1, ]) %>% 
+    arrange(desc({{t_match_name_symbol}}))
   row_id_cases <- which(!duplicated(ncc_cases[, id_name]))
   ncc_cases <- ncc_cases[row_id_cases, ]
   risk_table <- match_risk_table(ncc_cases = ncc_cases, 
                                  risk_table_manual = risk_table_manual,
                                  t_coarse_name = t_match_name, t_name = t_name, 
-                                 match_var_names = match_var_names) %>% 
+                                 match_var_names = match_var_names)
+  if (anyNA(risk_table)) {
+    stop(simpleError(sprintf(
+      "There is mismatch in event time in ncc ('%s') and risk_table_manual$t_event.", 
+      t_match_name
+    )))
+  }
+  risk_table <- risk_table %>% 
     mutate(p = p_not_sampled(n_event = n_event, n_at_risk = n_at_risk, 
                              n_per_case = n_per_case))
   ncc_cases <- ncc_cases[, -which(names(ncc_cases) == t_match_name)] 
