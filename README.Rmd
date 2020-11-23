@@ -34,7 +34,7 @@ library(dplyr)
 library(Epi) # To draw (non-counter-matched) nested case-control sample
 ```
 
-# 1 Drawing counter-matched sample
+# 1 Drawing counter-matched sample [#S1]
 
 ```{r}
 data(cohort_1)

@@ -21,8 +21,13 @@ Load packages used:
     ##     intersect, setdiff, setequal, union
     library(Epi) # To draw (non-counter-matched) nested case-control sample
 
+<<<<<<< HEAD
 1 Drawing counter-matched sample
 ================================
+=======
+1 Drawing counter-matched sample \[\#S1\]
+=========================================
+>>>>>>> 55568b86ac90e4bc30441c5498b232e70e3ff6b0
 
     data(cohort_1)
     head(cohort_1)
