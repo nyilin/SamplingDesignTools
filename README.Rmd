@@ -34,7 +34,7 @@ library(dplyr)
 library(Epi) # To draw (non-counter-matched) nested case-control sample
 ```
 
-# 1 Drawing counter-matched sample
+# 1 Drawing counter-matched sample [#S1]
 
 ```{r}
 data(cohort_1)
@@ -287,3 +287,75 @@ head(risk_table_coarse)
 This template will be written to a `csv` if specified by `csv_file`, making it 
 easier to supply information regarding the cohort that is required for computing 
 the KM-type weights.
+
+# 4 Weighted analysis of (more) extreme case-control samples
+
+In this section, I illustrate the weighted analysis of (more) extreme 
+case-control (MECC) samples using the conditional approach described in Section 
+2.2 of Salim et al (2014), using the simulated cohort described in 
+[Section 1](#S1) of this document:
+
+```{r}
+# Load cohort data
+data(cohort_1)
+head(cohort_1)
+```
+
+For illustrative purpose, I draw a matched MECC sample, with 2 controls
+frequency-matched to each case on gender. Unlike a NCC study where any subject
+who had the event during the entire follow-up is sampled as a case, in this MECC
+study I define cases as subjects who had the event within $\tau_0 = 5$ years of
+follow-up, and define eligible controls as subjects who did not have the event
+in the first $\tau = 15$ years of follow-up. Note that an event in a MECC study
+(`y_mecc`) has a different definition as an event in the original cohort study.
+
+```{r}
+set.seed(1)
+dat_mecc <- draw_mecc(cohort = cohort_1, tau0 = 5, tau = 15,
+                      id_name = "id", t_name = "t", delta_name = "y",
+                      match_var_names = "gender", n_per_case = 2)
+kable(head(dat_mecc))
+table(y = dat_mecc$y, y_mecc = dat_mecc$y_mecc)
+```
+
+As the conditional analysis of the MECC sample assumes individual matching, the
+function `draw_mecc` randomly matches controls to each case to form matched
+sets, indicated by the variable `set_id_mecc`. In addition, this function 
+provides the estimated baseline survival probabilities (i.e., $\hat{S}(t_i)$ and 
+$\hat{S}(\tau)$) that are needed to compute the weighted likelihood.
+
+The weighted approach estimates the HR, where all covariates need to be centred
+at the cohort average:
+
+```{r}
+dat_mecc$age_c <- dat_mecc$age - mean(cohort_1$age)
+# When there is only a single coefficient in, users should provide reasonable 
+# lower and upper limits for the estimate:
+m_mecc <- analyse_mecc_cond(
+  y_name = "y_mecc", x_formula = ~ age_c, set_id_name = "set_id_mecc",
+  surv = dat_mecc$surv, surv_tau = dat_mecc$surv_tau, mecc = dat_mecc,
+  lower = -1, upper = 1 
+)
+round(m_mecc$coef_mat[, -1], 3)
+coef_cox_cohort_1 <- summary(m_cox_cohort_1)$coef
+kable(data.frame(
+  Data = c("Full cohort", "1:2 MECC, weighted"), 
+  Variable = "Age", 
+  `True HR` = 1.1,
+  `Estimated HR` = c(coef_cox_cohort_1["age", "exp(coef)"], 
+                     m_mecc$coef_mat["age_c", "exp_est"]), 
+  `SE of log(HR)` = c(coef_cox_cohort_1["age", "se(coef)"], 
+                     m_mecc$coef_mat["age_c", "se"]), 
+  `p-value` = c(coef_cox_cohort_1["age", "Pr(>|z|)"], 
+                     m_mecc$coef_mat["age_c", "pval"]), 
+  check.names = FALSE
+), digits = c(0, 0, 1, 2, 3, 3))
+```
+
+**References:**
+
+- Salim A, Ma X, Fall K, et al. Analysis of incidence and prognosis from
+'extreme' case–control designs. Stat Med 2014; 33: 5388–5398.
+- Støer NC, Salim A, Bokenberger K, et al. Is the matched extreme case–control
+design more powerful than the nested case–control design?. Stat Methods Med Res
+2019; 28(6): 1911-1923.
