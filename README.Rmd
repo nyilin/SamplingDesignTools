@@ -1,10 +1,7 @@
 ---
-title: "Example Usages of SamplingDesignTools"
-author: "Ning Yilin"
+title: "SamplingDesignTools: Tools for Dealing with Complex Sampling Designs"
 date: "Created on 2020-05-29. Updated on `r Sys.Date()`"
-output: 
-  md_document:
-    variant: gfm
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -17,12 +14,14 @@ print_percent <- function(prop, n_digits = 1) {
 }
 ```
 
-# 0 Preparation
+# 0 Getting Started
+
+## Installation
 
 Install the SamplingDesignTools package from GitHub (package devtools needed):
 
-```{r}
-# devtools::install_github("nyilin/SamplingDesignTools")
+```{r, eval=FALSE}
+devtools::install_github("nyilin/SamplingDesignTools")
 ```
 
 Load packages used:
@@ -34,37 +33,68 @@ library(dplyr)
 library(Epi) # To draw (non-counter-matched) nested case-control sample
 ```
 
-# 1 Drawing counter-matched sample
+## Example Datasets
+
+This package uses two simulated cohort data (`cohort_1` and `cohort_2`)for
+illustrative purpose.
+
+### `cohort_1`
+
+Dataset `cohort_1` consists of 10,000 subjects with age simulated from 
+$N(55, 10^2)$) and gender simulated with $P(\text{Male}=0.5)$. The survival
+outcome simulated from the following true hazard:
+$$\log \{h(t)\} = \log \{h_0\} + \log(1.1) \text{Age} + \log(2) \text{Gender}.$$
+
+Time ($t$) is measured in years and censored at 25 years. Censoring is indicated 
+by $y=0$.
 
 ```{r}
-data(cohort_1)
-head(cohort_1)
+data("cohort_1")
+dim(cohort_1)
+table(cohort_1$y)
+kable(head(cohort_1))
 m_cox_cohort_1 <- coxph(Surv(t, y) ~ age + gender, data = cohort_1)
+summary(m_cox_cohort_1)
 ```
 
-In this example, I am using a simulated cohort with 10,000 subjects, where a
-continuous exposure (x ~ N(55, 10^2)) represents their age and a binary
-covariate indicates their gender (c = 1 for male, Pr(c=1)=0.5).
+### `cohort_2`
 
-The event time t was generated from a Weibull distribution with hazard
-function:
+Dataset `cohort_2` consists of 100,000 subjects, with survival outcome simulated 
+from the following true hazard:
+$$\log \{h(t)\} = \log \{h_0\} + \log(1.5)x + \log(4)z + \log(2)xz + 
+\log(1.01) \text{Gender} + \log(1.01) \text{Age}.$$
 
-log{h(t; x, c)} = log{h_0} + log(1.1) * x + log(2) * c,
+Time ($t$) is measured in years and censored at 25 years. Censoring is indicated 
+by $y=0$. Age is also recorded in 6 categories: <35, 36-45, 46-55, 56-65, 66-75
+and >75.
 
-where the baseline hazard h_0=10^{-5} and the scale parameter was 1. All
-individuals entered the cohort at time t=0 and were followed until the event
-of interest or a censoring time (generated from an exponential distribution with
-a rate of 0.05) with a maximum follow-up time of t=25. There were 
-`r sum(cohort_1$y == 1)` cases (`r print_percent(mean(cohort_1$y))`) in this
-cohort.
+```{r}
+data("cohort_2")
+dim(cohort_2)
+table(cohort_2$y)
+kable(head(cohort_2))
+m_cox_cohort_2 <- coxph(Surv(t, y) ~ x * z + age + gender, data = cohort_2)
+summary(m_cox_cohort_2)
+```
+
+# 1 Drawing counter-matched sample
+
+This section describes how to use `draw_ncc_cm()` to draw counter-matched nested 
+case-control (NCC) samples, and subsequently how to analyze the sample using a
+weighted conditional likelihood approach.
+
+Examples in this section use `cohort_1` as the underlying cohort, and considers 
+the continuous variable age as the continuous exposure of interest, just for 
+illustrative purpose.
+
+Reference:
+
+- Langholz B. [Counter‐Matching](https://onlinelibrary.wiley.com/doi/abs/10.1002/9781118445112.stat05225). Wiley StatsRef: Statistics Reference Online. 2014 Apr 14.
 
 ## Counter-match on binary surrogate
 
-In this analysis, I dichotomised the continuous exposure at 50 years of age, and
-drew a 1:1 time-matched sample counter matched on this binary variable that is
-considered as a surrogate for the exposure. This sample was analysed using a
-weighted conditional logistic model, where log of sampling weights were
-specified as offset in the model.
+This analysis uses dichotomous age (at 50 years) as a surrogate to the actual
+exposure to draw a counter-matched NCC sample with 1 control per case.
 
 ```{r}
 cohort_1$age_bin <- as.numeric(cohort_1$age < 50)
@@ -72,7 +102,7 @@ table(cohort_1$age_bin)
 ncc_cm_bin <- draw_ncc_cm(cohort = cohort_1, y_name = "y", t_name = "t", 
                           match_var_name = "age_bin", 
                           include_var_name = c("age", "gender"), ml = 1)
-head(ncc_cm_bin, 10)
+head(ncc_cm_bin)
 table(ncc_cm_bin$age_bin, ncc_cm_bin$y)
 m_clogit_bin <- clogit(y ~ age + gender + strata(set) + offset(log(weight)), 
                        data = ncc_cm_bin)
@@ -80,10 +110,9 @@ m_clogit_bin <- clogit(y ~ age + gender + strata(set) + offset(log(weight)),
 
 ## Counter-match on categorical surrogate
 
-In this analysis, I categorised the continuous exposure into 4 categories at 40,
-50 and 60 years of age, and drew a 1:3 time-matched sample counter matched on
-this categorical variable that is considered as a surrogate for the exposure.
-This sample was again analysed using a weighted conditional logistic model.
+This analysis divided age into 4 categories (at 40, 50 and 60 years) to create a
+categorical surrogate to the exposure, and subsequently drew a counter-matched 
+NCC sample with one control per age category, i.e., in total 3 controls per case.
 
 ```{r}
 cohort_1$age_quart <- cut(cohort_1$age, breaks = c(-Inf, 40, 50, 60, Inf), 
@@ -106,7 +135,9 @@ results_1 <- rbind(summary(m_cox_cohort_1)$coef,
                    summary(m_clogit_quart)$coef)
 rownames(results_1) <- NULL
 kable(data.frame(
-  Data = c("Full cohort", "", "1:1 NCC-CM", "", "1:3 NCC-CM", ""), 
+  Data = c("Full cohort", "", 
+           "NCC-CM, 1 control per case", "", 
+           "NCC-CM, 3 controls per case", ""), 
   Variable = rep(c("Age", "Male"), 3), 
   `True HR` = rep(c(1.1, 2), 3),
   `Estimated HR` = results_1[, "exp(coef)"], 
@@ -115,42 +146,27 @@ kable(data.frame(
 ), digits = c(0, 0, 1, 2, 3, 3))
 ```
 
-**Notes:** 1:1 NCC-CM indicates the analysis of the time-matched sample
-counter-matched on a binary surrogate. 1:3 NCC-CM indicates the analysis
-of the time-matched sample counter-matched on a surrogate with 4 categories.
-
 # 2 Compute KM-type weights for NCC sample
 
-```{r}
-data(cohort_2)
-head(cohort_2)
-m_cox_cohort_2 <- coxph(Surv(t, y) ~ x * z + age + gender, data = cohort_2)
-```
+This section describes how to use `compute_km_weights()` to draw NCC samples and 
+compute Kaplan-Meier type (KM-type) weights, and subsequently how to analyze the
+sample using a weighted Cox approach.
 
-In this example, I use a simulated cohort with 100,000 subjects with 
-age~N(55, 10^2), Pr(male=1)=0.5, a binary exposure (x) that depends
-on gender (Pr(x = 1)=0.8 for female and 0.5 for male) and a binary effect 
-modifier (Pr(z = 1)=0.3). The event time t was generated from a Weibull
-distribution with hazard function:
+Examples in this section use `cohort_2` as the underlying cohort.
 
-log{h(t;x, age, gender, z)} = log{h_0} + log(1.5) * x + 
-log(1.1) * gender + log(4) * z + log(2) * x * z + 
-log(1.02) * age,
+References:
 
-where the baseline hazard h_0=0.0005, and the scale parameter was 1. All
-individuals entered the cohort at time t=0 and were followed until the event
-of interest or a censoring time (generated from an exponential distribution with
-a rate of 0.05) with a maximum follow-up time of t=25. There were
-`r sum(cohort_2$y == 1)` cases (`r print_percent(mean(cohort_2$y))`) in this
-cohort.
+- Samuelsen SO. [A psudolikelihood approach to analysis of nested case-control studies](https://academic.oup.com/biomet/article-abstract/84/2/379/233968?redirectedFrom=fulltext). Biometrika. 1997 Jun 1;84(2):379-94.
+- Borgan Ø, Samuelsen SO. [A review of cohort sampling designs for Cox's regression model: potentials in epidemiology](https://www.ntnu.no/ojs/index.php/norepid/article/view/292). Norsk Epidemiologi. 2003;13(2).
 
-## 1:5 NCC matched on age and gender
+## 1:2 NCC matched on age and gender
 
-Subjects were divided into 6 age groups: <35, 36-45, 46-55, 56-65, 66-75 and >75.
-A 1:5 NCC sample was draw from the cohort, matched on age group and gender. 
+Consider an idealistic scenario, where the full cohort is available to calculate
+the KM-type weights. A NCC sample was draw (using `Epi::ccwc()`) with 2 controls
+per case, matched on age group and gender.
 
 ```{r}
-n_per_case <- 5
+n_per_case <- 2
 ncc_2 <- ccwc(exit = t, fail = y, controls = n_per_case, 
               match = list(age_cat, gender), include = list(x, age, z), 
               data = cohort_2, silent = TRUE)
@@ -165,14 +181,27 @@ ncc_2_nodup <- compute_km_weights(cohort = cohort_2, t_name = "t", y_name = "y",
                                   sample_stat = sample_stat, 
                                   match_var_names = c("age_cat", "gender"), 
                                   n_per_case = n_per_case)
-head(ncc_2_nodup, 12)
+head(ncc_2_nodup)
 summary(ncc_2_nodup$km_weight)
 m_cox_ncc_2 <- coxph(Surv(t, y) ~ x * z + gender + age, data = ncc_2_nodup,
                      weights = km_weight, robust = TRUE)
 m_clogit_ncc_2 <- clogit(Fail ~ x * z + strata(Set), data = ncc_2)
 ```
 
+By breaking the matching in the NCC and performing a weighted analysis, users
+are also able to estimate the absolute risk that is not available from NCC in
+conventional conditional approach. This is not illustrated here but have been
+described in following papers:
+
+- Salim A, Delcoigne B, Villaflores K, Koh WP, Yuan JM, van Dam RM, Reilly M. [Comparisons of risk prediction methods using nested case‐control data](https://pubmed.ncbi.nlm.nih.gov/27734520/). Statistics in medicine. 2017 Feb 10;36(3):455-65.
+- Delcoigne B, Colzani E, Prochazka M, Gagliardi G, Hall P, Abrahamowicz M, Czene K, Reilly M. [Breaking the matching in nested case–control data offered several advantages for risk estimation](https://pubmed.ncbi.nlm.nih.gov/27923734/). Journal of clinical epidemiology. 2017 Feb 1;82:79-86.
+
+
 ## Compare results
+
+Compared to conventional conditional logistic regression analysis of matched
+sets, weighted Cox analysis of sampled subjects produces smaller SE, and
+provides estimates for matching factors.
 
 ```{r}
 results_2 <- rbind(summary(m_cox_cohort_2)$coef, 
@@ -183,8 +212,8 @@ results_2 <- data.frame(Variable = rownames(results_2), results_2,
 rownames(results_2) <- NULL
 kable(data.frame(
   Data = c("Full cohort", rep("", 4), 
-           "1:5 NCC (clogit)", rep("", 2), 
-           "1:5 NCC (weighted Cox)", rep("", 4)), 
+           "NCC (clogit)", rep("", 2), 
+           "NCC (weighted Cox)", rep("", 4)), 
   Variable = results_2$Variable, 
   `True HR` = c(c(1.5, 4, 1.01, 1.01, 2), 
                 c(1.5, 4, 2), c(1.5, 4, 1.01, 1.01, 2)),
@@ -194,33 +223,18 @@ kable(data.frame(
 ), digits = c(0, 0, 2, 2, 3, 3))
 ```
 
-**Notes:** 1:5 NCC indicates the weighted analysis of the NCC without dropping
-any controls. 1:5 NCC keep 2 controls indicates the weighted analysis of the NCC
-data where only the cases and 2 controls from each set are used. Each NCC data 
-was first analysed using conditional logistic regression, and then weighted Cox 
-model after breaking the matching.
-
 # 3 Compute weights for NCC without full cohort
 
-In the previous section, we assumed the full cohort was available when computing
-the KM-type weight for each subject in the NCC. However, in reality this may not
-always be the case. When the cohort is not available, the KM-type weights can be
-computed for the NCC sample as long the time of event/censoring for each subject
-is available, and the number of subjects at risk can be obtained (or
-approximated) elsewhere.
+KM-type weights can be computed for the NCC sample as long the time of
+event/censoring for each subject is available, and the number of subjects at
+risk can be obtained (or approximated) elsewhere. 
 
-To illustrate this scenario, I reuse the simulated cohort from the previous
-section:
+This section considers a more realistic scenario where the cohort is no longer
+available, and subjects at risk are approximated using the number of subjects at
+risk in a year.
 
-```{r}
-head(cohort_2)
-```
-
-Note that `Time` is the event time of each case in a matched set, while `t` is
-the actual event/censoring time of each subject. When the full cohort is not
-available, it is often difficult to obtain the exact number of subject at risk
-at each event time if the cohort is not available. I simulate such situation
-by rounding the event/censoring time (`t`) to the next integer, and use this
+To match NCC sample to the coarsened time frame, create a variable `t_yr` by 
+rounding the exact event/censoring time, `t` to the next integer, and use this
 coarsened time to compute the number at risk:
 
 ```{r}
@@ -233,8 +247,26 @@ risk_table_coarse <- compute_risk_table(cohort = cohort_2, t_name = "t_yr",
 head(risk_table_coarse)
 ```
 
-Now I use this information to compute the KM-type weights and subsequently fit
-the weighted Cox model:
+In reality, number at risk at each event time may be approximated by, e.g., size
+of the relevant sub-population at mid-year. In such case, user may use the 
+following function to generate a template for `risk_table_coarse` to fill in:
+
+```{r}
+risk_table_template <- prepare_risk_table(ncc = ncc_2, t_match_name = "t_yr", 
+                                          y_name = "Fail", 
+                                          match_var_names = c("gender", "age_cat"), 
+                                          csv_file = NULL)
+head(risk_table_template)
+```
+
+This template will be written to a `csv` if specified by `csv_file`, making it 
+easier to supply information regarding the cohort that is required for computing 
+the KM-type weights.
+
+Assuming that `risk_table_coarse` is the approximated risk table obtained from
+external sources, the KM-type weights for `ncc_2` generated in the previous
+section can be computed using the same `compute_km_weights()` function and 
+subsequently analyzed using a weighted Cox approach:
 
 ```{r}
 ncc_nodup2 <- compute_km_weights(ncc = ncc_2[, -1], 
@@ -259,8 +291,8 @@ results_3 <- data.frame(Variable = rownames(results_3), results_3,
 rownames(results_3) <- NULL
 kable(data.frame(
   Data = c("Full cohort", rep("", 4), 
-           "1:5 NCC (weighted Cox)", rep("", 4),
-           "1:5 NCC (weighted Cox, v2)*", rep("", 4)), 
+           "NCC (weighted Cox)", rep("", 4),
+           "NCC (weighted Cox, approximated weights)", rep("", 4)), 
   Variable = results_3$Variable, 
   `True HR` = rep(c(1.5, 4, 1.01, 1.01, 2), 3),
   `Estimated HR` = results_3[, "exp(coef)"], 
@@ -269,43 +301,28 @@ kable(data.frame(
 ), digits = c(0, 0, 2, 2, 3, 3))
 ```
 
-*: Using the KM-type weights computed from the approximate number at risk
-obtained in this section.
-
-In reality, number at risk at each event time may be approximated by, e.g., size
-of the relevant sub-population at mid-year. In such case, user may use the 
-following function to generate a template for `risk_table_coarse` to fill in:
-
-```{r}
-risk_table_coarse <- prepare_risk_table(ncc = ncc_2, t_match_name = "t_yr", 
-                                        y_name = "Fail", 
-                                        match_var_names = c("gender", "age_cat"), 
-                                        csv_file = NULL)
-head(risk_table_coarse)
-```
-
-This template will be written to a `csv` if specified by `csv_file`, making it 
-easier to supply information regarding the cohort that is required for computing 
-the KM-type weights.
-
 # 4 Weighted analysis of (more) extreme case-control samples
 
-In this section, I illustrate the weighted analysis of (more) extreme 
-case-control (MECC) samples using the conditional approach described in Section 
-2.2 of Salim et al (2014), using the simulated cohort described in Section 1 of
-this document:
+An extreme case-control (ECC) study is only interested in "early deaths" design,
+and a more extreme case-control (MECC) further restricts candidate controls to
+"longer survivors". These two types of study designs are described in the figure
+below.
 
-```{r}
-head(cohort_1)
-```
+![Extreme case-control (ECC) and more extreme case-control (MECC). Dots denote events.](www/MECC.png){width=50%}
 
-For illustrative purpose, I draw a matched MECC sample, with 2 controls
-frequency-matched to each case on gender. Unlike a NCC study where any subject
-who had the event during the entire follow-up is sampled as a case, in this MECC
-study I define cases as subjects who had the event within $\tau_0 = 5$ years of
-follow-up, and define eligible controls as subjects who did not have the event
-in the first $\tau = 15$ years of follow-up. Note that an event in a MECC study
-(`y_mecc`) has a different definition as an event in the original cohort study.
+This section illustrates the weighted analysis of MECC samples using the
+conditional approach described in Section 2.2 of Salim et al (2014), using the
+simulated cohort described in Section 1 of this paper:
+
+- Salim A, Ma X, Fall K, Andrén O, Reilly M. [Analysis of incidence and prognosis from 'extreme' case‐control designs](https://pubmed.ncbi.nlm.nih.gov/24980445/). Statistics in medicine. 2014 Dec 30;33(30):5388-98.
+
+The example in this section uses `cohort_1` as the underlying cohort. For
+illustrative purpose, a MECC sample was drawn by frequency-matching 2 controls
+to each case on gender. "Early deaths" were defined as events before 
+$\tau_0 = 5$ years of follow-up, and "long survivors" were defined as subjects
+who did not have the event in the first $\tau = 15$ years of follow-up. Note
+that an event in a MECC study (`y_mecc`) has a different definition as an event
+in the original cohort study.
 
 ```{r}
 set.seed(1)
@@ -349,11 +366,3 @@ kable(data.frame(
   check.names = FALSE
 ), digits = c(0, 0, 1, 2, 3, 3))
 ```
-
-**References:**
-
-- Salim A, Ma X, Fall K, et al. Analysis of incidence and prognosis from
-'extreme' case–control designs. Stat Med 2014; 33: 5388–5398.
-- Støer NC, Salim A, Bokenberger K, et al. Is the matched extreme case–control
-design more powerful than the nested case–control design?. Stat Methods Med Res
-2019; 28(6): 1911-1923.

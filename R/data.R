@@ -1,5 +1,8 @@
 #' Simulated cohort 1
 #'
+#' Survival outcome was simulated with true hazard:
+#' \deqn{\log \{h(t)\} = \log \{h_0\} + \log(1.1)Age + \log(2)Gender.}
+#'
 #' @format A data frame with 10000 rows and 5 variables:
 #' \describe{
 #'   \item{id}{Subject ID of each subject.}
@@ -8,12 +11,18 @@
 #'   \item{age}{Age of subjects (rounded to integers).}
 #'   \item{gender}{Gender of subjects (1 for male and 0 for female).}
 #' }
+#' 
+#' @examples 
+#' library(survival)
+#' data("cohort_1", package = "SamplingDesignTools")
+#' summary(coxph(Surv(t, y) ~ age + gender, data = cohort_1))
+#' 
 "cohort_1"
 
 #' Nested case-control (NCC) data 1
 #' 
-#' @description Time-matched data drawn from \code{\link{cohort_1}}, with one  
-#' controls matched to each case.
+#' Time-matched data drawn from \code{\link{cohort_1}}, with one control
+#' matched to each case.
 #' 
 #' @format A data frame with 1164 rows and 6 variables:
 #' \describe{
@@ -28,6 +37,10 @@
 
 #' Simulated cohort 2
 #'
+#' Survival outcome was simulated with true hazard: 
+#' \deqn{\log \{h(t)\} = \log \{h_0\}
+#' + \log(1.5)x + \log(4)z + \log(2)xz + \log(1.01)Gender + \log(1.01)Age.}
+#'
 #' @format A data frame with 100000 rows and 8 variables:
 #' \describe{
 #'   \item{id}{Subject ID of each subject.}
@@ -39,6 +52,12 @@
 #'   \item{gender}{Gender of subjects (1 for male and 0 for female).}
 #'   \item{z}{Binary effect modifier.}
 #' }
+#' 
+#' @examples 
+#' library(survival)
+#' data("cohort_2", package = "SamplingDesignTools")
+#' summary(coxph(Surv(t, y) ~ x * z + age + gender, data = cohort_2))
+#' 
 "cohort_2"
 
 #' Nested case-control (NCC) data 2

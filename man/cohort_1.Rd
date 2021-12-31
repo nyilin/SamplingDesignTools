@@ -18,6 +18,13 @@ A data frame with 10000 rows and 5 variables:
 cohort_1
 }
 \description{
-Simulated cohort 1
+Survival outcome was simulated with true hazard:
+\deqn{\log \{h(t)\} = \log \{h_0\} + \log(1.1)Age + \log(2)Gender.}
+}
+\examples{
+library(survival)
+data("cohort_1", package = "SamplingDesignTools")
+summary(coxph(Surv(t, y) ~ age + gender, data = cohort_1))
+
 }
 \keyword{datasets}

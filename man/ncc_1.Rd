@@ -19,7 +19,7 @@ A data frame with 1164 rows and 6 variables:
 ncc_1
 }
 \description{
-Time-matched data drawn from \code{\link{cohort_1}}, with one  
-controls matched to each case.
+Time-matched data drawn from \code{\link{cohort_1}}, with one control
+matched to each case.
 }
 \keyword{datasets}

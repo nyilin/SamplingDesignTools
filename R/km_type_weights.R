@@ -269,7 +269,6 @@ assign_kmw0 <- function(ncc_nodup, risk_table) {
 #'   subject at risk at each event time in each strata defined by matching
 #'   variables (\code{n_at_risk}).
 #' @import dplyr
-#' @import purrr
 compute_kmw_cohort <- function(cohort, t_start_name = NULL, t_name, sample_stat, 
                                match_var_names = NULL, n_per_case, 
                                return_risk_table = FALSE, 
