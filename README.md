@@ -1,6 +1,6 @@
 SamplingDesignTools: Tools for Dealing with Complex Sampling Designs
 ================
-Created on 2020-05-29. Updated on 2021-12-31
+Created on 2020-05-29. Updated on 2022-01-02
 
 # 0 Getting Started
 
