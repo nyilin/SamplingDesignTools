@@ -1,6 +1,38 @@
 SamplingDesignTools: Tools for Dealing with Complex Sampling Designs
 ================
-Created on 2020-05-29. Updated on 2022-01-02
+Created on 2020-05-29. Updated on 2022-06-11
+
+-   <a href="#0-getting-started" id="toc-0-getting-started">0 Getting
+    Started</a>
+    -   <a href="#installation" id="toc-installation">Installation</a>
+    -   <a href="#example-datasets" id="toc-example-datasets">Example
+        Datasets</a>
+        -   <a href="#cohort_1" id="toc-cohort_1"><code>cohort_1</code></a>
+        -   <a href="#cohort_2" id="toc-cohort_2"><code>cohort_2</code></a>
+-   <a href="#1-drawing-counter-matched-sample"
+    id="toc-1-drawing-counter-matched-sample">1 Drawing counter-matched
+    sample</a>
+    -   <a href="#counter-match-on-binary-surrogate"
+        id="toc-counter-match-on-binary-surrogate">Counter-match on binary
+        surrogate</a>
+    -   <a href="#counter-match-on-categorical-surrogate"
+        id="toc-counter-match-on-categorical-surrogate">Counter-match on
+        categorical surrogate</a>
+    -   <a href="#compare-results" id="toc-compare-results">Compare results</a>
+-   <a href="#2-compute-km-type-weights-for-ncc-sample"
+    id="toc-2-compute-km-type-weights-for-ncc-sample">2 Compute KM-type
+    weights for NCC sample</a>
+    -   <a href="#12-ncc-matched-on-age-and-gender"
+        id="toc-12-ncc-matched-on-age-and-gender">1:2 NCC matched on age and
+        gender</a>
+    -   <a href="#compare-results-1" id="toc-compare-results-1">Compare
+        results</a>
+-   <a href="#3-compute-weights-for-ncc-without-full-cohort"
+    id="toc-3-compute-weights-for-ncc-without-full-cohort">3 Compute weights
+    for NCC without full cohort</a>
+-   <a href="#4-weighted-analysis-of-more-extreme-case-control-samples"
+    id="toc-4-weighted-analysis-of-more-extreme-case-control-samples">4
+    Weighted analysis of (more) extreme case-control samples</a>
 
 # 0 Getting Started
 
@@ -38,12 +70,17 @@ This package uses two simulated cohort data (`cohort_1` and
 ### `cohort_1`
 
 Dataset `cohort_1` consists of 10,000 subjects with age simulated from
-*N*(55, 10<sup>2</sup>)) and gender simulated with *P*(Male = 0.5). The
-survival outcome simulated from the following true hazard:
-log {*h*(*t*)} = log {*h*<sub>0</sub>} + log (1.1)Age + log (2)Gender.
+![N(55, 10^2)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;N%2855%2C%2010%5E2%29 "N(55, 10^2)"))
+and gender simulated with
+![P(\text{Male}=0.5)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;P%28%5Ctext%7BMale%7D%3D0.5%29 "P(\text{Male}=0.5)").
+The survival outcome simulated from the following true hazard:
 
-Time (*t*) is measured in years and censored at 25 years. Censoring is
-indicated by *y* = 0.
+![\log \\{h(t)\\} = \log \\{h_0\\} + \log(1.1) \text{Age} + \log(2) \text{Gender}.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Clog%20%5C%7Bh%28t%29%5C%7D%20%3D%20%5Clog%20%5C%7Bh_0%5C%7D%20%2B%20%5Clog%281.1%29%20%5Ctext%7BAge%7D%20%2B%20%5Clog%282%29%20%5Ctext%7BGender%7D. "\log \{h(t)\} = \log \{h_0\} + \log(1.1) \text{Age} + \log(2) \text{Gender}.")
+
+Time
+(![t](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;t "t"))
+is measured in years and censored at 25 years. Censoring is indicated by
+![y=0](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;y%3D0 "y=0").
 
 ``` r
 data("cohort_1")
@@ -93,11 +130,17 @@ summary(m_cox_cohort_1)
 
 Dataset `cohort_2` consists of 100,000 subjects, with survival outcome
 simulated from the following true hazard:
-log {*h*(*t*)} = log {*h*<sub>0</sub>} + log (1.5)*x* + log (4)*z* + log (2)*x**z* + log (1.01)Gender + log (1.01)Age.
 
-Time (*t*) is measured in years and censored at 25 years. Censoring is
-indicated by *y* = 0. Age is also recorded in 6 categories: &lt;35,
-36-45, 46-55, 56-65, 66-75 and &gt;75.
+![\log \\{h(t)\\} = \log \\{h_0\\} + \log(1.5)x + \log(4)z + \log(2)xz + 
+\log(1.01) \text{Gender} + \log(1.01) \text{Age}.](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Clog%20%5C%7Bh%28t%29%5C%7D%20%3D%20%5Clog%20%5C%7Bh_0%5C%7D%20%2B%20%5Clog%281.5%29x%20%2B%20%5Clog%284%29z%20%2B%20%5Clog%282%29xz%20%2B%20%0A%5Clog%281.01%29%20%5Ctext%7BGender%7D%20%2B%20%5Clog%281.01%29%20%5Ctext%7BAge%7D. "\log \{h(t)\} = \log \{h_0\} + \log(1.5)x + \log(4)z + \log(2)xz + 
+\log(1.01) \text{Gender} + \log(1.01) \text{Age}.")
+
+Time
+(![t](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;t "t"))
+is measured in years and censored at 25 years. Censoring is indicated by
+![y=0](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;y%3D0 "y=0").
+Age is also recorded in 6 categories: \<35, 36-45, 46-55, 56-65, 66-75
+and \>75.
 
 ``` r
 data("cohort_2")
@@ -110,7 +153,7 @@ table(cohort_2$y)
 kable(head(cohort_2))
 ```
 
-|  id |   y |         t |   x | age | age\_cat   | gender |   z |
+|  id |   y |         t |   x | age | age_cat    | gender |   z |
 |----:|----:|----------:|----:|----:|:-----------|-------:|----:|
 |   1 |   0 | 25.000000 |   1 |  -2 | (45,55\]   |      0 |   0 |
 |   2 |   0 | 19.819801 |   1 |  -4 | (45,55\]   |      1 |   0 |
@@ -534,7 +577,10 @@ candidate controls to “longer survivors”. These two types of study
 designs are described in the figure below.
 
 <figure>
-<img src="www/MECC.png" style="width:50.0%" alt="Extreme case-control (ECC) and more extreme case-control (MECC). Dots denote events." /><figcaption aria-hidden="true">Extreme case-control (ECC) and more extreme case-control (MECC). Dots denote events.</figcaption>
+<img src="www/MECC.png" style="width:50.0%"
+alt="Extreme case-control (ECC) and more extreme case-control (MECC). Dots denote events." />
+<figcaption aria-hidden="true">Extreme case-control (ECC) and more
+extreme case-control (MECC). Dots denote events.</figcaption>
 </figure>
 
 This section illustrates the weighted analysis of MECC samples using the
@@ -549,8 +595,11 @@ using the simulated cohort described in Section 1 of this paper:
 The example in this section uses `cohort_1` as the underlying cohort.
 For illustrative purpose, a MECC sample was drawn by frequency-matching
 2 controls to each case on gender. “Early deaths” were defined as events
-before *τ*<sub>0</sub> = 5 years of follow-up, and “long survivors” were
-defined as subjects who did not have the event in the first *τ* = 15
+before
+![\tau_0 = 5](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Ctau_0%20%3D%205 "\tau_0 = 5")
+years of follow-up, and “long survivors” were defined as subjects who
+did not have the event in the first
+![\tau = 15](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Ctau%20%3D%2015 "\tau = 15")
 years of follow-up. Note that an event in a MECC study (`y_mecc`) has a
 different definition as an event in the original cohort study.
 
@@ -565,14 +614,14 @@ dat_mecc <- draw_mecc(cohort = cohort_1, tau0 = 5, tau = 15,
 kable(head(dat_mecc))
 ```
 
-|   id |   y |         t | age | gender | age\_bin | age\_quart | y\_mecc |      surv | surv\_tau | set\_id\_mecc |
-|-----:|----:|----------:|----:|-------:|---------:|:-----------|--------:|----------:|----------:|:--------------|
-| 8756 |   1 | 2.1351357 |  76 |      0 |        0 | 4          |       1 | 0.9943501 |  0.957786 | set\_8756     |
-| 8069 |   1 | 3.6774974 |  74 |      0 |        0 | 4          |       1 | 0.9898270 |  0.957786 | set\_8069     |
-| 5939 |   1 | 0.8364486 |  49 |      0 |        1 | 2          |       1 | 0.9979733 |  0.957786 | set\_5939     |
-| 1756 |   1 | 4.3993170 |  63 |      0 |        0 | 4          |       1 | 0.9878869 |  0.957786 | set\_1756     |
-| 7955 |   1 | 4.4904526 |  64 |      0 |        0 | 4          |       1 | 0.9876400 |  0.957786 | set\_7955     |
-| 1531 |   1 | 2.5664238 |  69 |      0 |        0 | 4          |       1 | 0.9918995 |  0.957786 | set\_1531     |
+|   id |   y |         t | age | gender | age_bin | age_quart | y_mecc |      surv | surv_tau | set_id_mecc |
+|-----:|----:|----------:|----:|-------:|--------:|:----------|-------:|----------:|---------:|:------------|
+| 8756 |   1 | 2.1351357 |  76 |      0 |       0 | 4         |      1 | 0.9943501 | 0.957786 | set_8756    |
+| 8069 |   1 | 3.6774974 |  74 |      0 |       0 | 4         |      1 | 0.9898270 | 0.957786 | set_8069    |
+| 5939 |   1 | 0.8364486 |  49 |      0 |       1 | 2         |      1 | 0.9979733 | 0.957786 | set_5939    |
+| 1756 |   1 | 4.3993170 |  63 |      0 |       0 | 4         |      1 | 0.9878869 | 0.957786 | set_1756    |
+| 7955 |   1 | 4.4904526 |  64 |      0 |       0 | 4         |      1 | 0.9876400 | 0.957786 | set_7955    |
+| 1531 |   1 | 2.5664238 |  69 |      0 |       0 | 4         |      1 | 0.9918995 | 0.957786 | set_1531    |
 
 ``` r
 table(y = dat_mecc$y, y_mecc = dat_mecc$y_mecc)
@@ -586,8 +635,11 @@ As the conditional analysis of the MECC sample assumes individual
 matching, the function `draw_mecc` randomly matches controls to each
 case to form matched sets, indicated by the variable `set_id_mecc`. In
 addition, this function provides the estimated baseline survival
-probabilities (i.e., *Ŝ*(*t*<sub>*i*</sub>) and *Ŝ*(*τ*)) that are
-needed to compute the weighted likelihood.
+probabilities (i.e.,
+![\hat{S}(t_i)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Chat%7BS%7D%28t_i%29 "\hat{S}(t_i)")
+and
+![\hat{S}(\tau)](https://latex.codecogs.com/png.image?%5Cdpi%7B110%7D&space;%5Cbg_white&space;%5Chat%7BS%7D%28%5Ctau%29 "\hat{S}(\tau)"))
+that are needed to compute the weighted likelihood.
 
 The weighted approach estimates the HR, where all covariates need to be
 centred at the cohort average:
