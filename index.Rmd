@@ -1,8 +1,22 @@
 ---
 title: "SamplingDesignTools: Tools for Dealing with Complex Sampling Designs"
 date: "Created on 2020-05-29. Updated on `r Sys.Date()`"
-output: html_document
+author: "Yilin Ning"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    code_folding: show
 ---
+
+<style>
+    body {
+        font-size: 12pt;
+    }
+</style>
 
 ```{r setup, include=FALSE}
 set.seed(1234)
@@ -13,8 +27,6 @@ print_percent <- function(prop, n_digits = 1) {
   sprintf(str, prop * 100)
 }
 ```
-
-Go to [another page](another_page.html).
 
 # 0 Getting Started
 
