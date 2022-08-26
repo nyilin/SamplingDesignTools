@@ -6,10 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Xie Feng, Ning Yilin, Yuan Han, Liu Mingxuan, Liu Nan">
-<meta name="dcterms.date" content="2022-08-24">
 
-<title>AutoScore: An Interpretable Machine Learning-Based Automatic Clinical Score Generator</title>
+<title>AutoScore: An Interpretable Machine Learning-Based Automatic Clinical Score Generator - 1&nbsp; Related Published papers</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -27,7 +25,8 @@ ul.task-list{list-style: none;}
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./01-related_papers.html" rel="next">
+<link href="./011Installation.html" rel="next">
+<link href="./index.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -68,7 +67,7 @@ ul.task-list{list-style: none;}
   <header id="quarto-header" class="headroom fixed-top">
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">AutoScore: An Interpretable Machine Learning-Based Automatic Clinical Score Generator</h1>
+      <h1 class="quarto-secondary-nav-title"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Related Published papers</span></h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -93,12 +92,12 @@ ul.task-list{list-style: none;}
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link active">AutoScore Introduction</a>
+  <a href="./index.html" class="sidebar-item-text sidebar-link">AutoScore Introduction</a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./01-related_papers.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Related Published papers</span></a>
+  <a href="./01-related_papers.html" class="sidebar-item-text sidebar-link active"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Related Published papers</span></a>
   </div>
 </li>
         <li class="sidebar-item">
@@ -145,11 +144,13 @@ ul.task-list{list-style: none;}
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#autoscore-introduction" id="toc-autoscore-introduction" class="nav-link active" data-scroll-target="#autoscore-introduction">AutoScore Introduction</a>
+  <li><a href="#method-extension" id="toc-method-extension" class="nav-link active" data-scroll-target="#method-extension"> <span class="header-section-number">1.1</span> Method Extension</a></li>
+  <li><a href="#autoscore-clinical-applications" id="toc-autoscore-clinical-applications" class="nav-link" data-scroll-target="#autoscore-clinical-applications"> <span class="header-section-number">1.2</span> AutoScore Clinical Applications</a>
   <ul class="collapse">
-  <li><a href="#usage" id="toc-usage" class="nav-link" data-scroll-target="#usage">Usage</a></li>
-  <li><a href="#citation" id="toc-citation" class="nav-link" data-scroll-target="#citation">Citation</a></li>
-  <li><a href="#contact" id="toc-contact" class="nav-link" data-scroll-target="#contact">Contact</a></li>
+  <li><a href="#emergency-medicine" id="toc-emergency-medicine" class="nav-link" data-scroll-target="#emergency-medicine"> <span class="header-section-number">1.2.1</span> Emergency Medicine</a></li>
+  <li><a href="#neurology" id="toc-neurology" class="nav-link" data-scroll-target="#neurology"> <span class="header-section-number">1.2.2</span> Neurology</a></li>
+  <li><a href="#out-of-hospital-cardiac-arrest" id="toc-out-of-hospital-cardiac-arrest" class="nav-link" data-scroll-target="#out-of-hospital-cardiac-arrest"> <span class="header-section-number">1.2.3</span> Out-of-Hospital Cardiac Arrest</a></li>
+  <li><a href="#renal-medicine" id="toc-renal-medicine" class="nav-link" data-scroll-target="#renal-medicine"> <span class="header-section-number">1.2.4</span> Renal Medicine</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -159,61 +160,66 @@ ul.task-list{list-style: none;}
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title d-none d-lg-block">AutoScore: An Interpretable Machine Learning-Based Automatic Clinical Score Generator</h1>
+<h1 class="title d-none d-lg-block"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Related Published papers</span></h1>
 </div>
 
 
 
 <div class="quarto-title-meta">
 
-    <div>
-    <div class="quarto-title-meta-heading">Author</div>
-    <div class="quarto-title-meta-contents">
-             <p>Xie Feng, Ning Yilin, Yuan Han, Liu Mingxuan, Liu Nan </p>
-          </div>
-  </div>
     
-    <div>
-    <div class="quarto-title-meta-heading">Published</div>
-    <div class="quarto-title-meta-contents">
-      <p class="date">2022-08-24</p>
-    </div>
-  </div>
     
   </div>
   
 
 </header>
 
-<section id="autoscore-introduction" class="level1 unnumbered">
-<h1 class="unnumbered">AutoScore Introduction</h1>
-<p>AutoScore is a novel machine learning framework to automate the development of interpretable clinical scoring models. AutoScore consists of six modules: 1) variable ranking with machine learning, 2) variable transformation, 3) score derivation, 4) model selection, 5) domain knowledge-based score fine-tuning, and 6) performance evaluation. The original AutoScore structure is elaborated in the article (<a href="http://dx.doi.org/10.2196/21798" class="uri">http://dx.doi.org/10.2196/21798</a>) and its flowchart is shown in the following figure. AutoScore was originally designed for binary outcomes and later extended to survival outcomes (<a href="http://dx.doi.org/10.1016/j.jbi.2021.103959" class="uri">http://dx.doi.org/10.1016/j.jbi.2021.103959</a>) and ordinal outcomes (<a href="https://doi.org/10.48550/arxiv.2202.08407" class="uri">https://doi.org/10.48550/arxiv.2202.08407</a>). AutoScore could seamlessly generate risk scores using a parsimonious set of variables for different types of clinical outcomes, which can be easily implemented and validated in clinical practice. Moreover, it enables users to build transparent and interpretable clinical scores quickly in a straightforward manner.</p>
-<section id="usage" class="level2">
-<h2 class="anchored" data-anchor-id="usage">Usage</h2>
-<p>The five pipeline functions constitute the 5-step AutoScore-based process for generating point-based clinical scores for binary (<a href="./04-autoscore.html#top">Chapter 5</a>), survival (<a href="./05-autoscore_survival.html#top">Chapter 6</a>) and ordinal outcomes (<a href="./06-autoscore_ordinal.html#top">Chapter 7</a>).</p>
-<p>This 5-step process gives users the flexibility of customization (e.g., determining the final list of variables according to the parsimony plot, and fine-tuning the cutoffs in variable transformation). Please follow the step-by-step instructions (in following Demos) to build your own scores.</p>
-<ul>
-<li>STEP(i): <code>AutoScore_rank()</code>or <code>AutoScore_rank_Survival()</code> or <code>AutoScore_rank_Ordinal()</code> - Rank variables with machine learning (AutoScore Module 1)</li>
-<li>STEP(ii): <code>AutoScore_parsimony()</code> or <code>AutoScore_parsimony_Survival()</code> or <code>AutoScore_parsimony_Ordinal()</code> - Select the best model with parsimony plot (AutoScore Modules 2+3+4)</li>
-<li>STEP(iii): <code>AutoScore_weighting()</code> or <code>AutoScore_weighting_Survival()</code> or <code>AutoScore_weighting_Ordinal()</code> - Generate the initial score with the final list of variables (Re-run AutoScore Modules 2+3)</li>
-<li>STEP(iv): <code>AutoScore_fine_tuning()</code> or <code>AutoScore_fine_tuning_Survival()</code> or <code>AutoScore_fine_tuning_Ordinal()</code> - Fine-tune the score by revising <code>cut_vec</code> with domain knowledge (AutoScore Module 5)</li>
-<li>STEP(v): <code>AutoScore_testing()</code> or <code>AutoScore_testing_Survival()</code> or <code>AutoScore_testing_Ordinal()</code> - Evaluate the final score with ROC analysis (AutoScore Module 6)</li>
-</ul>
-<p>We also include several optional functions in the package, which could help with data analysis and result reporting. As demonstrated in <a href="./03-data_processing.html#top">Chapter 3</a>, these functions are <code>compute_descriptive_table()</code> for generating the table of descriptive analysis for your dataset, <code>compute_uni_variable_table()</code> or <code>compute_uni_variable_table_survival()</code> or <code>compute_uni_variable_table_ordinal()</code> for creating the table of univariable analysis for your dataset, and <code>compute_multi_variable_table()</code> for generating the table of multivariable analysis for your dataset.</p>
-</section>
-<section id="citation" class="level2">
-<h2 class="anchored" data-anchor-id="citation">Citation</h2>
+<section id="method-extension" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="method-extension"><span class="header-section-number">1.1</span> Method Extension</h2>
+<p>Original Paper:</p>
 <p>Xie F, Chakraborty B, Ong MEH, Goldstein BA, Liu N. AutoScore: A Machine Learning-Based Automatic Clinical Score Generator and Its Application to Mortality Prediction Using Electronic Health Records. JMIR Medical Informatics 2020;8(10):e21798 (<a href="http://dx.doi.org/10.2196/21798" class="uri">http://dx.doi.org/10.2196/21798</a>)</p>
+<p>Extension to Survival outcomes:</p>
 <p>Xie F, Ning Y, Yuan H, et al.&nbsp;AutoScore-Survival: Developing interpretable machine learning-based time-to-event scores with right-censored survival data. J Biomed Inform. 2022;125:103959. (<a href="http://dx.doi.org/10.1016/j.jbi.2021.103959" class="uri">http://dx.doi.org/10.1016/j.jbi.2021.103959</a>)</p>
+<p>Extension to ordinal outcomes:</p>
 <p>Saffari SE, Ning Y, Feng X, Chakraborty B, Volovici V, Vaughan R, Ong ME, Liu N, AutoScore-Ordinal: An interpretable machine learning framework for generating scoring models for ordinal outcomes, arXiv:2202.08407 (<a href="https://doi.org/10.48550/arxiv.2202.08407" class="uri">https://doi.org/10.48550/arxiv.2202.08407</a>)</p>
-<p>Yilin Ning, Siqi Li, Marcus Eng Hock Ong, Feng Xie, Bibhas Chakraborty, Daniel Shu Wei Ting, Nan Liu, A novel interpretable machine learning system to generate clinical risk scores: An application for predicting early mortality or unplanned readmission in a retrospective cohort study, <em>PLOS Digit Health</em> 1(6): e0000062 (<a href="https://doi.org/10.1371/journal.pdig.0000062" class="uri">https://doi.org/10.1371/journal.pdig.0000062</a>).</p>
+<p>Extension to unbalanced data:</p>
+<p>Han Yuan, Feng Xie, Marcus Eng Hock Ong, Yilin Ning, Marcel Lucas Chee, Seyed Ehsan Saffari, Hairil Rizal Abdullah, Benjamin Alan Goldstein, Bibhas Chakraborty, Nan Liu, AutoScore-Imbalance: An interpretable machine learning tool for development of clinical scores with rare events data, Journal of Biomedical Informatics,Volume 129,2022,104072,ISSN 1532-0464 (<a href="https://doi.org/10.1016/j.jbi.2022.104072" class="uri">https://doi.org/10.1016/j.jbi.2022.104072</a>)</p>
+<p>Integrated AutoScore-ShapleyVIC framework for robust and interpretable variable ranking:</p>
+<p>Ning Y, Li S, Ong ME, Xie F, Chakraborty B, Ting DS, Liu N. A novel interpretable machine learning system to generate clinical risk scores: An application for predicting early mortality or unplanned readmission in a retrospective cohort study. <em>PLOS Digit Health</em> 1(6): e0000062. (<a href="https://doi.org/10.1371/journal.pdig.0000062" class="uri">https://doi.org/10.1371/journal.pdig.0000062</a>)</p>
 </section>
-<section id="contact" class="level2">
-<h2 class="anchored" data-anchor-id="contact">Contact</h2>
+<section id="autoscore-clinical-applications" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="autoscore-clinical-applications"><span class="header-section-number">1.2</span> AutoScore Clinical Applications</h2>
+<p>A collection of clinical applications using <a href="https://github.com/nliulab/AutoScore"><strong>AutoScore</strong></a> and its extensions can be found on this page. The list is categorized according to medical specialties and is updated regularly. However, due to the manual process of updating, we are unable to keep track of all publications.</p>
 <ul>
-<li>Feng Xie (Email: <a href="mailto:xief@u.duke.nus.edu" class="email">xief@u.duke.nus.edu</a>)</li>
-<li>Yilin Ning (Email: <a href="mailto:yilin.ning@duke-nus.edu.sg" class="email">yilin.ning@duke-nus.edu.sg</a>)</li>
-<li>Nan Liu (Email: <a href="mailto:liu.nan@duke-nus.edu.sg" class="email">liu.nan@duke-nus.edu.sg</a>)</li>
+<li><a href="#emergency-medicine"><strong>Emergency Medicine</strong></a></li>
+<li><a href="#neurology"><strong>Neurology</strong></a></li>
+<li><a href="#out-of-hospital-cardiac-arrest"><strong>Out-of-Hospital Cardiac Arrest</strong></a></li>
+<li><a href="#renal-medicine"><strong>Renal Medicine</strong></a></li>
+</ul>
+<section id="emergency-medicine" class="level3" data-number="1.2.1">
+<h3 data-number="1.2.1" class="anchored" data-anchor-id="emergency-medicine"><span class="header-section-number">1.2.1</span> Emergency Medicine</h3>
+<ul>
+<li>Xie F, et al.&nbsp;<a href="https://www.thelancet.com/journals/eclinm/article/PIIS2589-5370(22)00045-1/fulltext">Development and validation of an interpretable machine learning scoring tool for estimating time to emergency readmissions</a>. eClinicalMedicine 2022 Mar; 45: 101315.</li>
+<li>Xie F, et al.&nbsp;<a href="https://jamanetwork.com/journals/jamanetworkopen/fullarticle/2783549">Development and assessment of an interpretable machine learning triage tool for estimating mortality after emergency admissions</a>. JAMA Network Open 2021 Aug; 4(8): e2118467.</li>
+</ul>
+</section>
+<section id="neurology" class="level3" data-number="1.2.2">
+<h3 data-number="1.2.2" class="anchored" data-anchor-id="neurology"><span class="header-section-number">1.2.2</span> Neurology</h3>
+<ul>
+<li>Petersen KK, et al.&nbsp;<a href="https://n.neurology.org/content/early/2022/04/25/WNL.0000000000200553">Predicting Amyloid Positivity in Cognitively Unimpaired Older Adults: A Machine Learning Approach Using the A4 Data</a>. Neurology 2022 Apr.</li>
+</ul>
+</section>
+<section id="out-of-hospital-cardiac-arrest" class="level3" data-number="1.2.3">
+<h3 data-number="1.2.3" class="anchored" data-anchor-id="out-of-hospital-cardiac-arrest"><span class="header-section-number">1.2.3</span> Out-of-Hospital Cardiac Arrest</h3>
+<ul>
+<li>Liu N, et al.&nbsp;<a href="https://doi.org/10.1016/j.eclinm.2022.101422">Development and validation of interpretable prehospital return of spontaneous circulation (P-ROSC) score for out-of-hospital cardiac arrest patients using machine learning</a>. eClinicalMedicine 2022 Jun; 48: 101422.</li>
+<li>Wong XY, et al.&nbsp;<a href="https://www.sciencedirect.com/science/article/abs/pii/S0300957221004834">Development and validation of the SARICA score to predict survival after return of spontaneous circulation in out of hospital cardiac arrest using an interpretable machine learning framework</a>. Resuscitation 2022 Jan; 170: 126-133.</li>
+</ul>
+</section>
+<section id="renal-medicine" class="level3" data-number="1.2.4">
+<h3 data-number="1.2.4" class="anchored" data-anchor-id="renal-medicine"><span class="header-section-number">1.2.4</span> Renal Medicine</h3>
+<ul>
+<li>Ang Y, et al.&nbsp;<a href="https://www.nature.com/articles/s41598-022-11129-4">Development and validation of an interpretable clinical score for early identification of acute kidney injury at the emergency department</a>. Scientific Reports 2022 May; 12: 7111.</li>
 </ul>
 
 
@@ -302,10 +308,13 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation column-body">
   <div class="nav-page nav-page-previous">
+      <a href="./index.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">AutoScore Introduction</span>
+      </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./01-related_papers.html" class="pagination-link">
-        <span class="nav-page-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Related Published papers</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="./011Installation.html" class="pagination-link">
+        <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Package Installation and import</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
