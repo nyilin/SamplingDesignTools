@@ -1,0 +1,89 @@
+# Drawing counter-matched sample
+
+```{r, include=FALSE}
+set.seed(1234)
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, cache = TRUE)
+print_percent <- function(prop, n_digits = 1) {
+  str <- paste0("%.", n_digits, "f%%")
+  sprintf(str, prop * 100)
+}
+m_cox_cohort_1 <- readRDS("output/m_cox_cohort_1.RDS")
+```
+
+
+This section describes how to use `draw_ncc_cm()` to draw counter-matched nested 
+case-control (NCC) samples, and subsequently how to analyze the sample using a
+weighted conditional likelihood approach.
+
+Examples in this section use [`cohort_1`](index.qmd#cohort_1) as the underlying
+cohort, and considers the continuous variable age as the continuous exposure of
+interest, just for illustrative purpose.
+
+Reference:
+
+- Langholz B. [Counter‐Matching](https://onlinelibrary.wiley.com/doi/abs/10.1002/9781118445112.stat05225). Wiley StatsRef: Statistics Reference Online. 2014 Apr 14.
+
+## Load packages and data
+
+```{r}
+library(SamplingDesignTools)
+library(survival)
+library(dplyr)
+library(knitr)
+data("cohort_1")
+```
+
+## Counter-match on binary surrogate
+
+This analysis uses dichotomous age (at 50 years) as a surrogate to the actual
+exposure to draw a counter-matched NCC sample with 1 control per case.
+
+```{r}
+cohort_1$age_bin <- as.numeric(cohort_1$age < 50)
+table(cohort_1$age_bin)
+ncc_cm_bin <- draw_ncc_cm(cohort = cohort_1, y_name = "y", t_name = "t", 
+                          match_var_name = "age_bin", 
+                          include_var_name = c("age", "gender"), ml = 1)
+head(ncc_cm_bin)
+table(ncc_cm_bin$age_bin, ncc_cm_bin$y)
+m_clogit_bin <- clogit(y ~ age + gender + strata(set) + offset(log(weight)), 
+                       data = ncc_cm_bin)
+```
+
+## Counter-match on categorical surrogate
+
+This analysis divided age into 4 categories (at 40, 50 and 60 years) to create a
+categorical surrogate to the exposure, and subsequently drew a counter-matched 
+NCC sample with one control per age category, i.e., in total 3 controls per case.
+
+```{r}
+cohort_1$age_quart <- cut(cohort_1$age, breaks = c(-Inf, 40, 50, 60, Inf), 
+                          labels = 1:4, include.lowest = TRUE)
+table(cohort_1$age_quart)
+ncc_cm_quart <- draw_ncc_cm(cohort = cohort_1, y_name = "y", t_name = "t", 
+                            match_var_name = "age_quart", 
+                            include_var_name = c("age", "gender"), ml = 1)
+head(ncc_cm_quart, 20)
+table(ncc_cm_quart$age_quart)
+m_clogit_quart <- clogit(y ~ age + gender + strata(set) + offset(log(weight)), 
+                         data = ncc_cm_quart)
+```
+
+## Compare results
+
+```{r}
+results_1 <- rbind(summary(m_cox_cohort_1)$coef, 
+                   summary(m_clogit_bin)$coef, 
+                   summary(m_clogit_quart)$coef)
+rownames(results_1) <- NULL
+kable(data.frame(
+  Data = c("Full cohort", "", 
+           "NCC-CM, 1 control per case", "", 
+           "NCC-CM, 3 controls per case", ""), 
+  Variable = rep(c("Age", "Male"), 3), 
+  `True HR` = rep(c(1.1, 2), 3),
+  `Estimated HR` = results_1[, "exp(coef)"], 
+  `SE of log(HR)` = results_1[, "se(coef)"], 
+  `p-value` = results_1[, "Pr(>|z|)"], check.names = FALSE
+), digits = c(0, 0, 1, 2, 3, 3))
+```

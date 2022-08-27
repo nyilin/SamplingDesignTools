@@ -1,0 +1,103 @@
+# Compute KM-type weights for NCC sample {#ncc_km_weight}
+
+```{r, include=FALSE}
+set.seed(1234)
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, cache = TRUE)
+print_percent <- function(prop, n_digits = 1) {
+  str <- paste0("%.", n_digits, "f%%")
+  sprintf(str, prop * 100)
+}
+m_cox_cohort_2 <- readRDS("output/m_cox_cohort_2.RDS")
+```
+
+
+This section describes how to use `compute_km_weights()` to draw NCC samples and 
+compute Kaplan-Meier type (KM-type) weights, and subsequently how to analyze the
+sample using a weighted Cox approach.
+
+Examples in this section use [`cohort_2`](index.qmd#cohort_2) as the underlying
+cohort.
+
+References:
+
+- Samuelsen SO. [A psudolikelihood approach to analysis of nested case-control studies](https://academic.oup.com/biomet/article-abstract/84/2/379/233968?redirectedFrom=fulltext). Biometrika. 1997 Jun 1;84(2):379-94.
+- Borgan Ø, Samuelsen SO. [A review of cohort sampling designs for Cox's regression model: potentials in epidemiology](https://www.ntnu.no/ojs/index.php/norepid/article/view/292). Norsk Epidemiologi. 2003;13(2).
+
+## Load packages and data
+
+```{r}
+library(SamplingDesignTools)
+library(survival)
+library(Epi) # To draw (non-counter-matched) nested case-control sample
+library(dplyr)
+library(knitr)
+data("cohort_2")
+```
+
+## 1:2 NCC matched on age and gender
+
+Consider an idealistic scenario, where the full cohort is available to calculate
+the KM-type weights. A NCC sample was draw (using `Epi::ccwc()`) with 2 controls
+per case, matched on age group and gender.
+
+```{r}
+n_per_case <- 2
+ncc_2 <- ccwc(exit = t, fail = y, controls = n_per_case, 
+              match = list(age_cat, gender), include = list(x, age, z), 
+              data = cohort_2, silent = TRUE)
+names(ncc_2)[-(1:4)] <- c("age_cat", "gender", "x", "age", "z")
+head(ncc_2, 12)
+# Create the sampling and status indicator
+sample_stat <- numeric(nrow(cohort_2))
+sample_stat[unique(ncc_2$Map[ncc_2$Fail == 0])] <- 1
+sample_stat[ncc_2$Map[ncc_2$Fail == 1]] <- 2
+table(sample_stat)
+ncc_2_nodup <- compute_km_weights(cohort = cohort_2, t_name = "t", y_name = "y",
+                                  sample_stat = sample_stat, 
+                                  match_var_names = c("age_cat", "gender"), 
+                                  n_per_case = n_per_case)
+head(ncc_2_nodup)
+summary(ncc_2_nodup$km_weight)
+m_cox_ncc_2 <- coxph(Surv(t, y) ~ x * z + gender + age, data = ncc_2_nodup,
+                     weights = km_weight, robust = TRUE)
+m_clogit_ncc_2 <- clogit(Fail ~ x * z + strata(Set), data = ncc_2)
+```
+
+By breaking the matching in the NCC and performing a weighted analysis, users
+are also able to estimate the absolute risk that is not available from NCC in
+conventional conditional approach. This is not illustrated here but have been
+described in following papers:
+
+- Salim A, Delcoigne B, Villaflores K, Koh WP, Yuan JM, van Dam RM, Reilly M. [Comparisons of risk prediction methods using nested case‐control data](https://pubmed.ncbi.nlm.nih.gov/27734520/). Statistics in medicine. 2017 Feb 10;36(3):455-65.
+- Delcoigne B, Colzani E, Prochazka M, Gagliardi G, Hall P, Abrahamowicz M, Czene K, Reilly M. [Breaking the matching in nested case–control data offered several advantages for risk estimation](https://pubmed.ncbi.nlm.nih.gov/27923734/). Journal of clinical epidemiology. 2017 Feb 1;82:79-86.
+
+
+## Compare results {#results}
+
+Compared to conventional conditional logistic regression analysis of matched
+sets, weighted Cox analysis of sampled subjects produces smaller SE, and
+provides estimates for matching factors.
+
+```{r}
+results_2 <- rbind(summary(m_cox_cohort_2)$coef, 
+                   summary(m_clogit_ncc_2)$coef, 
+                   summary(m_cox_ncc_2)$coef[, -3])
+results_2 <- data.frame(Variable = rownames(results_2), results_2, 
+                        check.names = FALSE)
+rownames(results_2) <- NULL
+kable(data.frame(
+  Data = c("Full cohort", rep("", 4), 
+           "NCC (clogit)", rep("", 2), 
+           "NCC (weighted Cox)", rep("", 4)), 
+  Variable = results_2$Variable, 
+  `True HR` = c(c(1.5, 4, 1.01, 1.01, 2), 
+                c(1.5, 4, 2), c(1.5, 4, 1.01, 1.01, 2)),
+  `Estimated HR` = results_2[, "exp(coef)"], 
+  `SE of log(HR)` = results_2[, "se(coef)"], 
+  `p-value` = results_2[, "Pr(>|z|)"], check.names = FALSE
+), digits = c(0, 0, 2, 2, 3, 3))
+```
+
+```{r, include=FALSE}
+saveRDS(m_cox_ncc_2, file = "output/m_cox_ncc_2.RDS")
+```

@@ -1,0 +1,25 @@
+project:
+  type: book
+  output-dir: .
+
+book:
+  title: "SamplingDesignTools: Tools for Dealing with Complex Sampling Designs"
+  author: "Yilin Ning"
+  date: today
+  date-format: iso
+  chapters:
+    - index.qmd
+    - counter_match.qmd
+    - ncc_km_weight.qmd
+    - ncc_km_weight_proxy.qmd
+    - ecc.qmd
+
+format:
+  html:
+    always_allow_html: true
+    css: custom.css
+    theme: cosmo
+    code-copy: true
+
+
+

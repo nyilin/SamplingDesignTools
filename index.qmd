@@ -1,0 +1,81 @@
+# Getting Started {.unnumbered}
+
+```{r, include=FALSE}
+set.seed(1234)
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE)
+print_percent <- function(prop, n_digits = 1) {
+  str <- paste0("%.", n_digits, "f%%")
+  sprintf(str, prop * 100)
+}
+```
+
+## Installation
+
+Install the SamplingDesignTools package from GitHub (package devtools needed):
+
+```{r, eval=FALSE}
+install.packages("devtools") # if the package is not yet installed
+devtools::install_github("nyilin/SamplingDesignTools")
+```
+
+Load package:
+
+```{r}
+library(SamplingDesignTools)
+library(survival)
+library(Epi) # To draw (non-counter-matched) nested case-control sample
+library(dplyr)
+library(knitr)
+```
+
+## Example Datasets
+
+This package uses two simulated cohort data (`cohort_1` and `cohort_2`) for
+illustrative purpose.
+
+### `cohort_1` {#cohort_1}
+
+Dataset `cohort_1` consists of 10,000 subjects with age simulated from 
+$N(55, 10^2)$) and gender simulated with $P(\text{Male}=0.5)$. The survival
+outcome simulated from the following true hazard:
+$$\log \{h(t)\} = \log \{h_0\} + \log(1.1) \text{Age} + \log(2) \text{Gender}.$$
+
+Time ($t$) is measured in years and censored at 25 years. Censoring is indicated 
+by $y=0$.
+
+```{r}
+data("cohort_1")
+dim(cohort_1)
+table(cohort_1$y)
+kable(head(cohort_1))
+m_cox_cohort_1 <- coxph(Surv(t, y) ~ age + gender, data = cohort_1)
+summary(m_cox_cohort_1)
+```
+
+```{r, include=FALSE}
+saveRDS(m_cox_cohort_1, file = "output/m_cox_cohort_1.RDS")
+```
+
+### `cohort_2` {#cohort_2}
+
+Dataset `cohort_2` consists of 100,000 subjects, with survival outcome simulated 
+from the following true hazard:
+$$\log \{h(t)\} = \log \{h_0\} + \log(1.5)x + \log(4)z + \log(2)xz + 
+\log(1.01) \text{Gender} + \log(1.01) \text{Age}.$$
+
+Time ($t$) is measured in years and censored at 25 years. Censoring is indicated 
+by $y=0$. Age is also recorded in 6 categories: <35, 36-45, 46-55, 56-65, 66-75
+and >75.
+
+```{r}
+data("cohort_2")
+dim(cohort_2)
+table(cohort_2$y)
+kable(head(cohort_2))
+m_cox_cohort_2 <- coxph(Surv(t, y) ~ x * z + age + gender, data = cohort_2)
+summary(m_cox_cohort_2)
+```
+
+```{r, include=FALSE}
+saveRDS(m_cox_cohort_2, file = "output/m_cox_cohort_2.RDS")
+```

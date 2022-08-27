@@ -1,0 +1,106 @@
+# Compute weights for NCC without full cohort
+
+```{r, include=FALSE}
+set.seed(1234)
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, cache = TRUE)
+print_percent <- function(prop, n_digits = 1) {
+  str <- paste0("%.", n_digits, "f%%")
+  sprintf(str, prop * 100)
+}
+m_cox_cohort_2 <- readRDS("output/m_cox_cohort_2.RDS")
+m_cox_ncc_2 <- readRDS("output/m_cox_ncc_2.RDS")
+```
+
+KM-type weights can be computed for the NCC sample as long the time of
+event/censoring for each subject is available, and the number of subjects at
+risk can be obtained (or approximated) elsewhere. 
+
+Examples in this section use [`cohort_2`](index.qmd#cohort_2) as the underlying
+cohort, but consider a more realistic scenario where the cohort is no longer
+available, and subjects at risk are approximated using the number of subjects at
+risk in a year.
+
+## Load packages and data
+
+```{r}
+library(SamplingDesignTools)
+library(survival)
+library(Epi) # To draw (non-counter-matched) nested case-control sample
+library(dplyr)
+library(knitr)
+data("cohort_2")
+```
+
+## Coarsen time
+
+To match NCC sample to the coarsened time frame, create a variable `t_yr` by 
+rounding the exact event/censoring time, `t` to the next integer, and use this
+coarsened time to compute the number at risk:
+
+```{r}
+ncc_2$t <- cohort_2$t[ncc_2$Map]
+ncc_2$t_yr <- ceiling(ncc_2$t)
+cohort_2$t_yr <- ceiling(cohort_2$t)
+risk_table_coarse <- compute_risk_table(cohort = cohort_2, t_name = "t_yr", 
+                                        y_name = "y", 
+                                        match_var_names = c("age_cat", "gender"))
+head(risk_table_coarse)
+```
+
+## 1:2 NCC based on coarsened time
+
+In reality, number at risk at each event time may be approximated by, e.g., size
+of the relevant sub-population at mid-year. In such case, user may use the 
+following function to generate a template for `risk_table_coarse` to fill in:
+
+```{r}
+risk_table_template <- prepare_risk_table(ncc = ncc_2, t_match_name = "t_yr", 
+                                          y_name = "Fail", 
+                                          match_var_names = c("gender", "age_cat"), 
+                                          csv_file = NULL)
+head(risk_table_template)
+```
+
+This template will be written to a `csv` if specified by `csv_file`, making it 
+easier to supply information regarding the cohort that is required for computing 
+the KM-type weights.
+
+Assuming that `risk_table_coarse` is the approximated risk table obtained from
+external sources, the KM-type weights for `ncc_2` generated in the previous
+section can be computed using the same `compute_km_weights()` function and 
+subsequently analyzed using a weighted Cox approach:
+
+```{r}
+ncc_nodup2 <- compute_km_weights(ncc = ncc_2[, -1], 
+                                 risk_table_manual = risk_table_coarse, 
+                                 t_name = "t", y_name = "Fail", 
+                                 t_match_name = "t_yr",
+                                 id_name = "Map", 
+                                 match_var_names = c("age_cat", "gender"), 
+                                 n_per_case = 5)
+m_cox_ncc_2_v2 <- coxph(Surv(t, Fail) ~ x * z + age + gender, 
+                        data = ncc_nodup2, weights = km_weight, robust = TRUE)
+```
+
+## Compare results {#results}
+
+Compare with results [when the full cohort is available](ncc_km_weight.qmd#results):
+
+```{r}
+results_3 <- rbind(summary(m_cox_cohort_2)$coef, 
+                   summary(m_cox_ncc_2)$coef[, -3], 
+                   summary(m_cox_ncc_2_v2)$coef[, -3])
+results_3 <- data.frame(Variable = rownames(results_3), results_3, 
+                        check.names = FALSE)
+rownames(results_3) <- NULL
+kable(data.frame(
+  Data = c("Full cohort", rep("", 4), 
+           "NCC (weighted Cox)", rep("", 4),
+           "NCC (weighted Cox, approximated weights)", rep("", 4)), 
+  Variable = results_3$Variable, 
+  `True HR` = rep(c(1.5, 4, 1.01, 1.01, 2), 3),
+  `Estimated HR` = results_3[, "exp(coef)"], 
+  `SE of log(HR)` = results_3[, "se(coef)"], 
+  `p-value` = results_3[, "Pr(>|z|)"], check.names = FALSE
+), digits = c(0, 0, 2, 2, 3, 3))
+```
