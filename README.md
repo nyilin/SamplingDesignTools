@@ -10,7 +10,6 @@ needed):
 install.packages("devtools")
 devtools::install_github("nyilin/SamplingDesignTools")
 ```
-
 ## Usage
 
 Please refer to a [detailed guidebook](https://nyilin.github.io/SamplingDesignTools/) 
