@@ -44,8 +44,9 @@ Returns a \code{data.frame} of the (matched) CC sample, with an
 Draw a (matched) case-control (CC) sample from a cohort (or cross-sectional data)
 }
 \examples{
+library(SamplingDesignTools)
 # Load cohort data
-data(cohort_2) # Ignoring that we have the event time in this simulated cohort
+data("cohort_2") # Ignoring that we have the event time in this simulated cohort
 head(cohort_2)
 # Draw simple 1:2 case-control sample (i.e., with randomly selected controls):
 dat_scc <- draw_mcc(cohort = cohort_2, y_name = "y", n_per_case = 2)

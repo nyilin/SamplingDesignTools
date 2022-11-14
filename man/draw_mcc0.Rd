@@ -2,12 +2,22 @@
 % Please edit documentation in R/draw_mcc.R
 \name{draw_mcc0}
 \alias{draw_mcc0}
-\title{Private function: draw matched case-control data from cohort, taking all 
+\title{<Private function> Draw matched case-control data from cohort, taking all 
 cases available}
 \usage{
 draw_mcc0(cohort, y_name, n_per_case, match_var_names)
 }
+\arguments{
+\item{cohort}{Cohort data.}
+
+\item{y_name}{Name of the column of outcome. A \code{string}.}
+
+\item{n_per_case}{Number of controls matched to each case.}
+
+\item{match_var_names}{Name(s) of the match variable(s) in \code{cohort}. A
+\code{string} vector.}
+}
 \description{
-Private function: draw matched case-control data from cohort, taking all 
+<Private function> Draw matched case-control data from cohort, taking all 
 cases available
 }

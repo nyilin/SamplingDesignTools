@@ -2,7 +2,7 @@
 % Please edit documentation in R/extreme_case_control.R
 \name{llh_mecc_cond}
 \alias{llh_mecc_cond}
-\title{Negative log-likelihood in weighted analysis of (M)ECC sample}
+\title{<Private function> Negative log-likelihood in weighted analysis of (M)ECC sample}
 \usage{
 llh_mecc_cond(beta, x_mat, y_name, set_id_name, surv, surv_tau, mecc)
 }
@@ -35,7 +35,7 @@ Returns the negative log-likelihood in the weighted analysis of a
   (more) extreme case-control sample.
 }
 \description{
-Negative log-likelihood in weighted analysis of (M)ECC sample
+<Private function> Negative log-likelihood in weighted analysis of (M)ECC sample
 }
 \details{
 This function implements the conditional approach described in

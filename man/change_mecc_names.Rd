@@ -16,7 +16,8 @@ probability at each time point, the estimated survival probability at
 correspond to the last four columns of the MECC sample.}
 }
 \value{
-Returns \code{dat} with names changed for the outcome and set id columns.
+Returns \code{dat} with names changed for the outcome and set id
+  columns.
 }
 \description{
 <private function> Change variable names in MECC sample

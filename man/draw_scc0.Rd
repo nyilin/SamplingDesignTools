@@ -2,12 +2,19 @@
 % Please edit documentation in R/draw_mcc.R
 \name{draw_scc0}
 \alias{draw_scc0}
-\title{Private function: draw simple case-control data from cohort, taking all 
+\title{<Private function> Draw simple case-control data from cohort, taking all 
 cases available}
 \usage{
 draw_scc0(cohort, y_name, n_per_case)
 }
+\arguments{
+\item{cohort}{Cohort data.}
+
+\item{y_name}{Name of the column of outcome. A \code{string}.}
+
+\item{n_per_case}{Number of controls matched to each case.}
+}
 \description{
-Private function: draw simple case-control data from cohort, taking all 
+<Private function> Draw simple case-control data from cohort, taking all 
 cases available
 }

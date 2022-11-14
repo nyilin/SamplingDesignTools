@@ -1,5 +1,8 @@
-#' Private function: draw simple case-control data from cohort, taking all 
+#' <Private function> Draw simple case-control data from cohort, taking all 
 #' cases available
+#' @param cohort Cohort data.
+#' @param y_name Name of the column of outcome. A \code{string}.
+#' @param n_per_case Number of controls matched to each case.
 draw_scc0 <- function(cohort, y_name, n_per_case) {
   n_cases <- sum(cohort[, y_name] == 1)
   n_controls <- n_cases * n_per_case
@@ -17,29 +20,36 @@ draw_scc0 <- function(cohort, y_name, n_per_case) {
   }
   dat
 }
-#' Private function: draw matched case-control data from cohort, taking all 
+#' <Private function> Draw matched case-control data from cohort, taking all 
 #' cases available
-#' @import dplyr
+#' @inheritParams draw_scc0
+#' @param match_var_names Name(s) of the match variable(s) in \code{cohort}. A
+#'   \code{string} vector.
+#' @importFrom dplyr mutate arrange across group_by ungroup n filter summarise select
+#' @importFrom rlang .data
+#' @importFrom stats runif
 draw_mcc0 <- function(cohort, y_name, n_per_case, match_var_names) {
   y_name_symbol <- as.symbol(y_name)
   vars1 <- c(match_var_names, ".u")
   vars2 <- c(match_var_names, y_name)
   dat <- cohort %>% 
-    mutate(.u = runif(n = n())) %>% 
-    arrange(across({{vars1}})) %>%
-    group_by(across({{match_var_names}})) %>% 
-    mutate(.n_cases = sum({{y_name_symbol}} == 1)) %>%
-    ungroup() %>%
-    group_by(across({{vars2}})) %>%
-    mutate(.tmp_id = 1:n(), 
-           .select = ifelse(.tmp_id <= n_per_case * .n_cases, 1, 0), 
-           .w = n() / sum(.select == 1)) %>%
-    filter(.select == 1 | {{y_name_symbol}} == 1)
+    dplyr::mutate(.u = runif(n = dplyr::n())) %>% 
+    dplyr::arrange(dplyr::across({{vars1}})) %>%
+    dplyr::group_by(dplyr::across({{match_var_names}})) %>% 
+    dplyr::mutate(.n_cases = sum({{y_name_symbol}} == 1)) %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(dplyr::across({{vars2}})) %>%
+    dplyr::mutate(.tmp_id = 1:n(), 
+                  .select = ifelse(.data$.tmp_id <= n_per_case * .data$.n_cases, 
+                                   1, 0), 
+                  .w = n() / sum(.data$.select == 1)) %>%
+    dplyr::filter(.data$.select == 1 | {{y_name_symbol}} == 1)
   check_n_control <- dat %>%
-    summarise(enough_control = max(.tmp_id) < n_per_case * unique(.n_cases))
+    dplyr::summarise(enough_control = max(.data$.tmp_id) < 
+                       n_per_case * unique(.data$.n_cases))
   dat <- dat %>%
-    mutate(.w = ifelse({{y_name_symbol}} == 1, 1, .w)) %>%
-    select(-.tmp_id, -.select, -.u, -.n_cases) %>% 
+    dplyr::mutate(.w = ifelse({{y_name_symbol}} == 1, 1, .data$.w)) %>%
+    dplyr::select(-.data$.tmp_id, -.data$.select, -.data$.u, -.data$.n_cases) %>% 
     as.data.frame(stringsAsFactors = FALSE)
   if (any(check_n_control$enough_control)) {
     warnings(simpleWarning(
@@ -69,19 +79,9 @@ draw_mcc0 <- function(cohort, y_name, n_per_case, match_var_names) {
 #'   1 for cases and the inverse probability of the sampling fraction for each 
 #'   control.
 #' @import dplyr
+#' @importFrom stats as.formula
 #' @export
-#' @examples 
-#' # Load cohort data
-#' data(cohort_2) # Ignoring that we have the event time in this simulated cohort
-#' head(cohort_2)
-#' # Draw simple 1:2 case-control sample (i.e., with randomly selected controls):
-#' dat_scc <- draw_mcc(cohort = cohort_2, y_name = "y", n_per_case = 2)
-#' head(dat_scc)
-#' # Draw simple 1:2 case-control sample, matched on age group and gender:
-#' dat_mcc <- draw_mcc(cohort = cohort_2, y_name = "y", n_per_case = 2,
-#'                     match_var_names = c("age_cat", "gender"),
-#'                     weight_name = ".w")
-#' head(dat_mcc)
+#' @example man/examples/draw_mcc.R
 draw_mcc <- function(cohort, y_name, n_cases = NULL, n_per_case, 
                      match_var_names = NULL, weight_name = "ip_weight") {
   cohort <- as.data.frame(cohort)

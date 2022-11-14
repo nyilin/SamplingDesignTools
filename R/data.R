@@ -93,3 +93,22 @@
 #'   \code{ncc_2}. This is critical for computing the KM-type weights for
 #'   subjects in \code{ncc_2}.
 "n_at_risk"
+
+#' Simulated mini cohorts
+#' 
+#' @description Mini cohorts with common and staggered entry time.
+#' 
+#' @format A data frame with 10 rows and the following variables:
+#' \describe{
+#'   \item{id}{Subject ID.}
+#'   \item{t}{Event/censoring time, with follow-up starting at time 0.}
+#'   \item{t_start}{Start time of follow-up.}
+#'   \item{t_end}{End time of follow-up.}
+#'   \item{status}{Censoring status.}
+#' }
+#' 
+#' @name mini_cohorts
+"mini_cohort"
+
+#' @rdname mini_cohorts
+"mini_cohort2"

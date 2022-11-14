@@ -29,12 +29,14 @@ time of follow-up. A \code{string}. Default is \code{NULL}, i.e., every
 subject started the follow-up at time 0.}
 
 \item{t_name}{Name of the variable in \code{ncc_controls} for the time of
-event or censoring. A \code{string}.}
+censoring (coarsening not yet supported). A \code{string}.}
 
 \item{match_var_names}{Name(s) of the match variable(s) in
 \code{ncc_controls} used when drawing the NCC. A \code{string} vector.
 Default is \code{NULL}, i.e., the NCC was only time-matched. The
-corresponding column in \code{prob_table_manual} must have the same name.}
+corresponding column in \code{risk_table_manual} must have the same name.}
+
+\item{n_per_case}{Number of controls matched to each case.}
 
 \item{km_names}{Column names for the KM-type probability (the first element)
 and weight (the second element) computed. Default is
@@ -43,6 +45,28 @@ and weight (the second element) computed. Default is
 \description{
 Compute Kaplan-Meier type weights for newly collected NCC controls
 }
+\examples{
+library(SamplingDesignTools)
+# Load mini cohort
+data("mini_cohort")
+mini_cohort
+# For illustrative purpose, assume subjects 5, 7 and 10 are newly collected
+# controls, so that the resulting Kaplan-Meier type weights are identical to
+# examples for compute_km_weights():
+ncc_controls <- mini_cohort[c(5, 7, 10), c("id", "t")]
+ncc_controls
+# To use these newly sampled controls with existing cases, we need to have the 
+# number of subjects at risk at event times in mini_cohort:
+risk_table <- compute_risk_table(cohort = mini_cohort, t_name = "t", 
+                                 y_name = "status")
+# The following command computes the Kaplan-Meier type weights for the newly
+# sampled controls:
+ncc_controls <- compute_km_weights_controls(
+  ncc_controls = ncc_controls, risk_table_manual = risk_table, 
+  t_name = "t", n_per_case = 1
+)
+ncc_controls
+}
 \seealso{
-\code{\link{match_risk_table}}
+\code{\link{match_risk_table}}, \code{\link{compute_km_weights}}
 }

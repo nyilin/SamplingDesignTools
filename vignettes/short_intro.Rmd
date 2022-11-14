@@ -1,23 +1,30 @@
-SamplingDesignTools: Tools for Dealing with Complex Sampling Designs
-================
+---
+title: "Introduction"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{short_intro}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
 
-## Installation
-
-Install the SamplingDesignTools package from GitHub (package devtools
-needed):
-
-``` r
-install.packages("devtools")
-devtools::install_github("nyilin/SamplingDesignTools")
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
 ```
-## Usage
 
-The SamplingDesignTools package provides tools for working with study designs in
-epidemiological research, specifically the following study designs:
+The SamplingDesignTools package provides tools for working with various study
+designs in epidemiological research, specifically:
 
 **Case-control study:**
 
 - `draw_mcc()` to draw samples with or without matching on confounders.
+
+**(More) extreme case-control (MECC) study:**
+
+- `draw_mecc()` to draw MECC samples with or without matching on confounders.
+- `analyse_mecc_cond()` to estimate exposure effects from MECC samples.
 
 **Nested case-control (NCC) study:** 
 
@@ -30,11 +37,6 @@ controls when reusing cases in a previously collected NCC sample.
 
 - `draw_ncc_cm()` to draw counter-matched case-control samples with or without
 matching on confounders.
-
-**(More) extreme case-control (MECC) study:**
-
-- `draw_mecc()` to draw MECC samples with or without matching on confounders.
-- `analyse_mecc_cond()` to estimate exposure effects from MECC samples.
 
 Help documents for main functions above include minimal examples to illustrate
 function usage. Please refer to the 

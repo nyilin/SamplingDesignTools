@@ -1,4 +1,5 @@
-#' Recode subjects as cases and potential controls for (M)ECC sampling
+#' <Private function> Recode subjects as cases and potential controls for (M)ECC
+#' sampling
 #' @param t Event/censoring time.
 #' @param delta Event/censoring status.
 #' @inheritParams draw_mecc
@@ -15,7 +16,8 @@ recode_extreme <- function(t, delta, tau0, tau) {
 #'   probability at each time point, the estimated survival probability at
 #'   \code{tau}, and the ID for matched sets (see Details). These four variables 
 #'   correspond to the last four columns of the MECC sample.
-#' @return Returns \code{dat} with names changed for the outcome and set id columns.
+#' @return Returns \code{dat} with names changed for the outcome and set id
+#'   columns.
 change_mecc_names <- function(dat, mecc_names) {
   nc <- ncol(dat)
   names(dat)[(nc - 3):nc] <- mecc_names
@@ -58,23 +60,12 @@ change_mecc_names <- function(dat, mecc_names) {
 #' @return Returns a \code{data.frame} of the (more) extreme case-control
 #'   sample, with four additional columns as described in parameter
 #'   \code{mecc_names}.
-#' @import survival
-#' @import dplyr
+#' @importFrom survival survfit Surv
+#' @importFrom dplyr rename group_by summarise mutate filter left_join arrange desc
+#' @importFrom rlang .data
+#' @importFrom stats approx
 #' @export
-#' @examples 
-#' # Load cohort data
-#' data(cohort_1) 
-#' head(cohort_1)
-#' # Draw simple 1:2 more extreme case-control sample, matched on gender. 
-#' # Let cases be subjects who had the event within 5 years, and controls be 
-#' # selected from those who did not have the event until the 15-th year.
-#' dat_mecc <- draw_mecc(cohort = cohort_1, tau0 = 5, tau = 15, 
-#'                       id_name = "id", t_name = "t", delta_name = "y", 
-#'                       match_var_names = "gender", n_per_case = 2)
-#' head(dat_mecc)
-#' # Note that the new event indicator, `y_mecc`, is different from the original 
-#' # event, `y`, in the cohort:
-#' identical(dat_mecc$y, dat_mecc$y_mecc) # Expect FALSE
+#' @example man/examples/draw_mecc.R
 #' @references
 #' \itemize{
 #'   \item{Salim A, Ma X, Fall K, et al. Analysis of incidence and prognosis 
@@ -91,9 +82,9 @@ draw_mecc <- function(cohort, tau0, tau, id_name, t_name, delta_name,
   cohort <- prepare_cohort(cohort = cohort, t_start_name = NULL, t_name = t_name, 
                            y_name = delta_name, match_var_names = match_var_names, 
                            print_message = FALSE) %>% 
-    rename(.delta = .y)
+    dplyr::rename(.delta = .data$.y)
   match_var <- cohort$.strata0
-  km <- survfit(Surv(.t, .delta) ~ match_var, data = cohort)
+  km <- survfit(as.formula("Surv(.t, .delta) ~ match_var"), data = cohort)
   km_summ <- summary(km)
   if (is.null(km_summ$strata)) {
     surv_df <- data.frame(.t = km_summ$time, .surv = km_summ$surv, 
@@ -109,17 +100,21 @@ draw_mecc <- function(cohort, tau0, tau, id_name, t_name, delta_name,
   # Estimated survival probabilities that will be used to compute weights for 
   # controls in matched MECC:
   surv_tau <- surv_df %>% 
-    group_by(.strata) %>% 
-    summarise(.surv_tau = approx(x = .t, y = .surv, xout = tau)$y)
+    dplyr::group_by(.data$.strata) %>% 
+    dplyr::summarise(.surv_tau = approx(x = .data$.t, y = .data$.surv, 
+                                        xout = tau)$y)
   cohort <- cohort %>% 
-    mutate(.y = recode_extreme(t = .t, delta = .delta, tau0 = tau0, tau = tau)) %>% 
-    filter(.y %in% c(0, 1)) %>%
-    left_join(surv_df) %>%
-    left_join(surv_tau) %>% 
-    arrange(.strata, .t)
-  check_controls <- cohort %>% group_by(.strata) %>% 
-    summarise(n_cases = sum(.y == 1), n_controls = sum(.y == 0), 
-              enough = n_controls >= n_cases * n_per_case)
+    dplyr::mutate(.y = recode_extreme(t = .data$.t, delta = .data$.delta, 
+                                      tau0 = tau0, tau = tau)) %>% 
+    dplyr::filter(.data$.y %in% c(0, 1)) %>%
+    dplyr::left_join(surv_df) %>%
+    dplyr::left_join(surv_tau) %>% 
+    dplyr::arrange(.data$.strata, .data$.t)
+  check_controls <- cohort %>% 
+    dplyr::group_by(.data$.strata) %>% 
+    dplyr::summarise(n_cases = sum(.data$.y == 1), 
+                     n_controls = sum(.data$.y == 0), 
+                     enough = .data$n_controls >= .data$n_cases * n_per_case)
   if (any(!check_controls$enough)) {
     stop(simpleError("Not enough control to sample from."))
   }
@@ -140,14 +135,15 @@ draw_mecc <- function(cohort, tau0, tau, id_name, t_name, delta_name,
                                     n_per_case = n_per_case,
                                     match_var_names = ".strata", 
                                     weight_name = ".w_unused")) %>%
-    arrange(desc(.y), .strata) %>%
-    select(-.w_unused, -.strata0, -.strata, -.t_start, -.t, -.delta) %>%
+    dplyr::arrange(dplyr::desc(.data$.y), .data$.strata) %>%
+    dplyr::select(-.data$.w_unused, -.data$.strata0, -.data$.strata, 
+                  -.data$.t_start, -.data$.t, -.data$.delta) %>%
     as.data.frame(stringsAsFactors = FALSE)
   set_id <- paste0("set_", mecc[mecc$.y == 1, id_name])
   mecc$.set_id <- c(set_id, rep(set_id, each = n_per_case))
   change_mecc_names(dat = mecc, mecc_names = mecc_names)
 }
-#' Negative log-likelihood in weighted analysis of (M)ECC sample
+#' <Private function> Negative log-likelihood in weighted analysis of (M)ECC sample
 #' @param beta A vector of regression coefficients corresponding to
 #'   \code{x_formula}.
 #' @param x_mat A \code{model.matrix} (without the first column that has value 
@@ -175,8 +171,8 @@ draw_mecc <- function(cohort, tau0, tau, id_name, t_name, delta_name,
 #'   Section 2.2 of Salim et al 2014.
 #' @return Returns the negative log-likelihood in the weighted analysis of a
 #'   (more) extreme case-control sample.
-#' @import dplyr
-#' @export
+#' @importFrom dplyr rename mutate group_by summarise
+#' @importFrom rlang .data
 #' @author Yilin Ning, Nathalie C Støer
 #' @references
 #' \itemize{
@@ -190,17 +186,22 @@ draw_mecc <- function(cohort, tau0, tau, id_name, t_name, delta_name,
 llh_mecc_cond <- function(beta, x_mat, y_name, set_id_name, surv, surv_tau, mecc) {
   if (y_name != ".y") {
     y_name_symbol <- as.symbol(y_name)
-    mecc <- mecc %>% rename(.y = {{y_name_symbol}})
+    mecc <- mecc %>% dplyr::rename(.y = {{y_name_symbol}})
   }
   if (set_id_name != ".set_id") {
     set_id_name_symbol <- as.symbol(set_id_name)
-    mecc <- mecc %>% rename(.set_id = {{set_id_name_symbol}})
+    mecc <- mecc %>% dplyr::rename(.set_id = {{set_id_name_symbol}})
   }
   lh <- mecc %>% 
-    mutate(lp = as.matrix(x_mat) %*% beta, .surv = surv, .surv_tau = surv_tau) %>%
-    group_by(.set_id) %>%
-    mutate(w = (.surv[.y == 1] / .surv_tau[.y == 1]) ^ exp(lp)) %>% 
-    summarise(lh_i = (w[.y == 1] * exp(lp[.y == 1])) / sum(w * exp(lp)))
+    dplyr::mutate(lp = as.matrix(x_mat) %*% beta, 
+                  .surv = .data$surv, .surv_tau = .data$surv_tau) %>%
+    dplyr::group_by(.data$.set_id) %>%
+    dplyr::mutate(w = (.data$.surv[.data$.y == 1] / 
+                         .data$.surv_tau[.data$.y == 1]) ^ 
+                    exp(.data$lp)) %>% 
+    dplyr::summarise(lh_i = (.data$w[.data$.y == 1] * 
+                               exp(.data$lp[.data$.y == 1])) / 
+                       sum(.data$w * exp(.data$lp)))
   - sum(log(lh$lh_i))
 }
 #' Perform weighted analysis of (M)ECC data using the conditional approach
@@ -225,37 +226,9 @@ llh_mecc_cond <- function(beta, x_mat, y_name, set_id_name, surv, surv_tau, mecc
 #'   \item{optim_obj}{The \code{optim} output from maximising the log-likelihood
 #'   in the weighted analysis.}
 #' }
-#' @import dplyr
+#' @importFrom stats model.matrix optim pnorm
 #' @export
-#' @examples 
-#' # Load cohort data
-#' data(cohort_1) 
-#' head(cohort_1)
-#' # Draw simple 1:2 more extreme case-control sample, matched on gender. 
-#' # Let cases be subjects who had the event within 5 years, and controls be 
-#' # selected from those who did not have the event until the 15-th year.
-#' set.seed(1)
-#' dat_mecc <- draw_mecc(cohort = cohort_1, tau0 = 5, tau = 15, 
-#'                       id_name = "id", t_name = "t", delta_name = "y", 
-#'                       match_var_names = "gender", n_per_case = 2)
-#' head(dat_mecc)
-#' # To estimate the HR of age from MECC sample using the weighted approach, 
-#' # it is necessary to center age at the cohort average:
-#' dat_mecc$age_c <- dat_mecc$age - mean(cohort_1$age)
-#' result_mecc <- analyse_mecc_cond(
-#'   y_name = "y_mecc", x_formula = ~ age_c, set_id_name = "set_id_mecc", 
-#'   surv = dat_mecc$surv, surv_tau = dat_mecc$surv_tau, mecc = dat_mecc, 
-#'   lower = -1, upper = 1
-#' )
-#' round(result_mecc$coef_mat[, -1], 3)
-#' # Compare with the estimate from the full cohort:
-#' library(survival)
-#' result_cohort <- summary(coxph(Surv(t, y) ~ age + gender, data = cohort_1))$coef
-#' round(result_cohort["age", ], 3)
-#' # The MECC sample may also be analysed using a logistic regression to 
-#' # estimate the OR of age, which tends to overestimate the HR:
-#' result_logit <- summary(glm(y_mecc ~ age + gender, data = dat_mecc))$coef
-#' round(result_logit, 3)
+#' @example man/examples/analyse_mecc_cond.R
 #' @references
 #' \itemize{
 #'   \item{Salim A, Ma X, Fall K, et al. Analysis of incidence and prognosis 
@@ -288,9 +261,10 @@ analyse_mecc_cond <- function(y_name, x_formula, set_id_name, surv, surv_tau,
   }
   coef_mecc <- data.frame(var = x_names, est = opt_obj$par, 
                           exp_est = exp(opt_obj$par),
-                          se = 1 / sqrt(diag(opt_obj$hessian))) %>% 
-    mutate(pval = 2 * pnorm(q = abs(est / se), lower.tail = FALSE)) %>% 
-    as.data.frame(stringsAsFactors = FALSE)
+                          se = 1 / sqrt(diag(opt_obj$hessian)), 
+                          stringsAsFactors = FALSE)
+  coef_mecc$pval <- 2 * pnorm(q = abs(coef_mecc$est / coef_mecc$se), 
+                              lower.tail = FALSE)
   rownames(coef_mecc) <- x_names
   list(coef_mat = coef_mecc, optim_obj = opt_obj)
 }

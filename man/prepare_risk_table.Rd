@@ -21,6 +21,13 @@ column names.}
 resolution of measurement (e.g., in months or years) such that the number
 of subjects at risk in the cohort is available.}
 
+\item{y_name}{Name of the case/control indicator in \code{ncc}, with 1 for
+case and 0 for control A \code{string}.}
+
+\item{match_var_names}{Name(s) of the match variable(s) used when drawing the
+NCC. A \code{string} vector. Default is NULL, i.e., the NCC was only
+time-matched.}
+
 \item{csv_file}{Name of CSV file to write the template to. If left
 unspecified, the template will be returned as a \code{data.frame} instead.}
 }
@@ -41,7 +48,9 @@ Given a nested case-control (NCC) data, create a template for
   time within each sampling stratum (if applicable).
 }
 \examples{
-data(ncc_2)
-risk_table <- prepare_risk_table(ncc = ncc_2, t_match_name = "Time", y_name = "Fail", 
+library(SamplingDesignTools)
+data("ncc_2")
+risk_table <- prepare_risk_table(ncc = ncc_2, t_match_name = "Time", y_name = "Fail",
                                  match_var_names = c("age_cat", "gender"))
+head(risk_table)
 }

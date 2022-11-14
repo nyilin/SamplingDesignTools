@@ -33,6 +33,10 @@ additional columns for matching variables, if any. Make sure the matching
 variables have the same column names as in \code{ncc_cases} and
 \code{match_var_names}.}
 
+\item{t_start_name}{Name of the column for the start time of follow-up. A
+string. Default is NULL, i.e., every subject started the follow-up at time
+0.}
+
 \item{t_name}{Name of the column of the exact event/censoring time of each
 subject. Note that for controls, this should not be the time of the event
 in the same matched set. A \code{string}.}

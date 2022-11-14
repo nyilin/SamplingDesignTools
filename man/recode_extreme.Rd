@@ -2,7 +2,8 @@
 % Please edit documentation in R/extreme_case_control.R
 \name{recode_extreme}
 \alias{recode_extreme}
-\title{Recode subjects as cases and potential controls for (M)ECC sampling}
+\title{<Private function> Recode subjects as cases and potential controls for (M)ECC
+sampling}
 \usage{
 recode_extreme(t, delta, tau0, tau)
 }
@@ -20,5 +21,6 @@ eligible to be selected as controls. Extreme case-control (ECC) has
 \code{tau > tau0}.}
 }
 \description{
-Recode subjects as cases and potential controls for (M)ECC sampling
+<Private function> Recode subjects as cases and potential controls for (M)ECC
+sampling
 }

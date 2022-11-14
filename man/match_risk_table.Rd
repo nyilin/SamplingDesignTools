@@ -2,7 +2,7 @@
 % Please edit documentation in R/km_type_weights.R
 \name{match_risk_table}
 \alias{match_risk_table}
-\title{Match number at risk at coarsened time to NCC cases}
+\title{<Private function> Match number at risk at coarsened time to NCC cases}
 \usage{
 match_risk_table(
   ncc_cases,
@@ -46,5 +46,5 @@ of \code{strata}.}
 }
 }
 \description{
-Match number at risk at coarsened time to NCC cases
+<Private function> Match number at risk at coarsened time to NCC cases
 }
