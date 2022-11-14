@@ -29,6 +29,12 @@ library(Epi) # To draw (non-counter-matched) nested case-control sample
 library(dplyr)
 library(knitr)
 data("cohort_2")
+n_per_case <- 2
+ncc_2 <- ccwc(exit = t, fail = y, controls = n_per_case, 
+              match = list(age_cat, gender), include = list(x, age, z), 
+              data = cohort_2, silent = TRUE)
+names(ncc_2)[-(1:4)] <- c("age_cat", "gender", "x", "age", "z")
+head(ncc_2, 12)
 ```
 
 ## Coarsen time
